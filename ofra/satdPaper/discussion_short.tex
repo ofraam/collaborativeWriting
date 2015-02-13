@@ -1,0 +1,49 @@
+\section{Discussion and Future Work}
+\label{sec:con}
+
+
+%\note{Roni}{I restructured this part a bit,but put the old version in a comment below so you can revert back if you do not like it}
+
+
+
+This paper defines the Single Agent in a Team Decision Problem: an agent obtains new, unanticipated, information during a collaborative activity and needs to reason about whether and when to share this information with its teammates. This work is a first step in our effort to develop computer agents to support the care team of children with complex conditions. In this healthcare domain -- a case of dynamic mixed networks comprising people and computational agents -- teams are unlikely to have a fully coordinated joint plan or be able to anticipate all possible events. 
+
+
+We thus encode the 
+%Modeling such domains can be done naturally by encoding the 
+partial uncertain knowledge about the team's plan in a PRT instead of explicitly modeling all possible world observations (as is typically required in DT planning approaches). The PRT compactly represents many different possible plans and thus (indirectly) many possible observations as group activities evolve. For example, if an agent learns that its teammate chose a specific recipe, it can eliminate other possibilities at that OR node. Generally, either low-level or complex actions might be ``observed'' and the agent's beliefs can be revised by modifying the PRT accordingly. PRTs do not however support reasoning about {\em when} to share new observations which  DT approaches do. We thus propose an integrated BDI/DT approach. In this approach, an MDP reasons about communication using the PRT representation of other agents' possible plans (in the context provided by the SharedPlan).
+
+%the collaborating team has a SharedPlan, and the single agent has a PRT derived from that SharedPlan and uses an MDP to reason about communication in the context of that PRT.
+
+%Roni's version
+%% We defined SATD, and are aiming for healthcare
+%This paper defines the Single Agent in a Team Decision Problem: an agent obtains new, unanticipated, information during a collaborative activity and needs to reason about whether and when to share this information with its teammates. This work is a first step in our effort to develop computer agents to support the care team of children with complex conditions. This healthcare domain is a special case of dynamic mixed networks comprising people and computational agents. These teams are unlikely to have a fully coordinated joint plan or be able to anticipate all possible events. 
+%
+%% Modeling healthcare is best in shared plan, while reasoning is best in DT, so we merged
+%Modeling such domains can be done naturally by encoding the partial uncertain knowledge about the team's SharedPlan in a PRT instead of explicitly modeling all possible world observations (as is typically required in DT planning approaches). Reasoning about {\em when} to share an observed information, however, is not directly supported in PRTs as it is in DT approaches. Therefore, to solve the SATD problem, we propose an integrated BDI/DT approach, where the collaborating team has a SharedPlan, and the single agent has a PRT derived from that SharedPlan and uses an MDP to reason about communication in the context of that PRT.
+
+
+% -------------------- Old version 
+%This paper defines the Single Agent in a Team Decision Problem,  where an agent obtains new, unanticipated, information during a collaborative activity and needs to reason about whether and when to share this information with its teammates. This work is a first step in our effort to develop computer agents to support the care team of children with complex conditions. In dynamic mixed networks comprising of people and computational agents such as healthcare, teams are unlikely to have a fully coordinated joint plan or to anticipate all possible events. Thus, agents in such settings will need to reason about their teammates' plans with highly uncertain knowledge.
+
+%\note{Ofra}{tried to talk about modeling. does it work? } 
+%Modeling such domains can be done more naturally by encoding the partial knowledge about the team's SharedPlan instead of explicitly modeling all possible world observations as is typically required in decision-theoretic planning approaches. By representing possible plans in a PRT we can compactly capture many different observations agents might obtain. For example, if an agent learns that its teammate chose a specific recipe, it can eliminate other possibilities at that OR node. Generally, either low-level or complex actions might be ``observed'' and the agent's beliefs can be revised by modifying the PRT accordingly.  On the other hand, DT representations allow reasoning about uncertainty which is also a key feature of mixed networks. Therefore, to solve the SATD problem, we propose an integrated BDI/DT approach. We assume the collaborating team has a SharedPlan, and use an MDP  to reason about communication in the context of that plan.
+
+% -------------------- End of old version 
+
+
+%In mixed network teams of humans and computational agents and in dynamic domains with frequent changes, such as this health-care domain, it is unlikely that teams can or will produce  complete long-term joint plans or be able to anticipate all possible events. As a result, agents supporting people in such settings cannot directly apply existing decision-theoretic approaches to multi-agent communication. It may, however, be possible to elicit the goals, intentions and partial plans of team members and use those in conjunction with domain knowledge to reason about the effect of new information on other team-members' plans. We thus introduce the assumption that agents' have a way to update their beliefs about others' plans based on this new information.
+%There are several directions we intend to pursue in future work:
+
+%There are two challenging open problems that arise from the SATD problem and pose both computational and modeling challenges. 
+%First, the assumption that agents can reason about the plans of their teammates raises the question of how to obtain such knowledge. 
+%There are several possibilities: Agents can infer an initial belief about their teammates' plans based on the partial high-level plan defined by the team. For example, in the medical domain, there are often guidelines for treating different conditions which can be used to reason about alternative plans of care providers. 
+%Agents may also be able to observe some of their teammates' actions and refine their beliefs using plan recognition techniques. We note that while in our empirical domain agents could observe each other's actions, the MDP-PRT can also be used if not all actions are observable by modifying $\varphi_{obs}$ to consider the possibility of not observing an action.
+%% For teams collaborating over a long time horizon, learning could be used to estimate others' plans and the ways they change with new information. 
+% 
+%Second, solving SATD in larger groups of agents requires more than merely reasoning about each agent separately as this approaches is intractable. More importantly, it ignores interactions between other agents' plans. Therefore, agents will need to utilize the decomposability of the team's plan to focus on relevant agents and the relevant aspects of their plans. We intend to explore these open problems in future work.
+
+Two extensions of this work are required to use the MDP-PRT approach for agents operating in  mixed-networks, each a general multi-agent system challenge. To solve SATD for larger groups of agents requires deciding with whom to communicate, which itself requires taking into account interactions among agents' plans. We intend to use the decomposability of a team's plan to enable focusing on relevant agents and relevant aspects of their plans. The second challenge is developing methods for agents to acquire knowledge about other agents' possible plans. We are exploring several possibilities in the healthcare domain. Agents can infer an initial belief about their teammates' plans based on the partial high-level plan defined by the team. For example,  there are often guidelines for treating different conditions which can be used to reason about alternative plans of care providers. 
+Also, agents may be able to observe some of their teammates' actions and refine their beliefs using plan recognition techniques. For teams collaborating over a long time horizon, learning could be used to estimate others' plans and how they change with new information.
+
+

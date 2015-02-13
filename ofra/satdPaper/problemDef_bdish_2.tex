@@ -1,0 +1,53 @@
+\section{Problem Definition}
+\label{sec:pd}
+In this section, we formally define the SATD problem. SATD arises in the context of a group activity of a team of agents.  We assume the group's plan meets the SharedPlans specification for collaborative action~\cite{grosz1996collaborative}.  Two particular properties of SharedPlans are important:  plans, which decompose into constituent tasks, may be only partially specified and agents do not know the details of constituent tasks for which they are not responsible.
+%In this section, we formally define the SATD problem. SATD arises in the context of a group activity of a team of agents.  We assume the group's plan meets the SharedPlans specification for collaborative action~\cite{grosz1996collaborative}.  This plan is typically decomposed into constituent tasks and is partially specified.. 
+%Importantly, agents do not know the details of constituent tasks for which they are not responsible.
+ An instance of the SATD problem  is represented by a tuple $\bf{\langle a_i, A_{-i}, b_{SP}, V, o^*, \varphi_{comm}, C \rangle}$:
+
+
+\begin{itemize}
+\item  $\bf{a_i}$ : the agent that observes new information.
+\item $\bf{o^*}$: the new information $a_i$ obtained.
+\item $\bf{A_{-i}}$: the other agents that are part of the team.
+\item $\bf{b_{SP}}$: $a_i$'s beliefs about the SharedPlan of the team. $a_i$ knows its own plans but he is uncertain about others' plans.
+\item $\bf{V}$: the utility function; its value is the utility of completed constituent tasks.
+%\item $\bf{b}$ : $a_i$'s beliefs about the possible plans agents in ${A_{-i}}$ may choose to complete their constituent tasks and probabilities each of the plans would be chosen.
+\item $\bf{\varphi_{comm}}$: a function that produces a modified $b_{SP}'$ under the assumption that the agents in $A_{-i}$ (or a subset of them) are informed about $o^*$.
+\item $\bf{C}$: the cost of communicating $o^*$.
+\end{itemize}
+
+
+SATD is the problem of $a_i$ determining whether to communicate $o^*$ to agents in  $A_{-i}$ and if so, at what time. 
+It has two components: determining which agents are candidates for receiving the information and deciding whether, and when, to send information to (some or all) candidates.  This paper focuses on the constituent problem of deciding whether and when to send information. 
+%For examples, in the healthcare domain, when the PCP learns new information about the patient's status, she will need to reason about whether to share this information with other care providers, and when.
+
+
+%The SATD problem definition is general and does not commit to a specific planning representation: The plans about which agents have beliefs ($b$) might be realized in a variety of planning formalizations, including both logic-based and decision-theoretic approaches. For instance, $b$ might be represented using a BDI-based hierarchical representation that allows for partial plans and uncertainty, as we do in approach described in this paper using Probabilistic Recipe Trees~\cite{kamar2009incorporating}.
+
+
+
+%
+%\subsection{Draft alert!}
+%SATD is an information sharing problem that arises while a team of agents $A$ are performing a shared, collaborative plan. It is the problem of an agent $a_1\in A$ determining whether to communicate a new observation $o^*$ to the other agents in the team (denoted $A_{-i}$) and if so, at what time. 
+%
+%We are assuming a general sharedPlan setting, meaning that $a_1$ may not have a accurate knowledge of the other agents' plans. We denote by $B$ the beliefs $a_1$ has about the possible plans of the other agents in $A$. One can imagine $B$ as a set of plans, each associated with the probability that the other agents will choose that plan.\footnote{Note that a plan for $A_{-i}$ is in fact a set of plans, one for every agent.}
+%
+%SATD has two components: deciding whether and when to send information about $o^*$ and to which agents (potentially a subset of $A_{-i}$). In this paper we assume that if $o^*$ is shared it is shared with all agents and focus on the the constituent problem of deciding whether and when to share $o^*$. To reason about when to share $o^*$, we require a way to evaluate the impact of $o^*$ on $B$, and what will occur if $o^*$ is not shared. To this end, we formalize two methods for updating $B$, explained next.
+%
+%If $o^*$ is shared, $a_1$'s beliefs about the agents' plans change to reflect how the other agents would react to $o^*$. We formalize this with the $\varphi_{inform}(o^*, B)$ method, which returns $a_1$'s beliefs about the other agents plans after $o^*$ is shared. 
+%
+%If $o^*$ is not shared, the agents $A_{-i}$ continue their execution according to the shared plan. While $a_1$ does not know the exact details of the other agents plans, as time progresses it may observe the actions of the other agents or the outcomes of these actions. As a result, $a_1$'s beliefs about other agents' plans can change with time. To formalize this we introduce $O(o,B)$ and $\varphi_{observe}(o,B)$:
+%$\varphi_{observe}(o,B)$ returns $a_1$'s beliefs about the other agents plans after observing $o$,
+%and $O(o,B)$ returns the probability of observing $o$ in the next time step given according to $B$. 
+%
+%Finally, we can formally define a SATD instance as a tuple 
+%$\bf{\langle a_i, A_{-i}, SP, V, b, o^*, \varphi_{update}, \varphi{observe}, C \rangle}$,
+%where $SP$ is the sharedPlan the agents are executing, $C$ is the cost of communication $o^*$, and $V$ is a value function assigning values to completed tasks. The overall goal in SATD is to choose if and when to share $o^*$ with the other agents such as to maximize the expected utility of the team, which is the sum of completed tasks according to $V$ minus $C$ if $o^*$ was shared. 
+%
+%
+%[[End draft alert.]]
+%
+%
+%
+%

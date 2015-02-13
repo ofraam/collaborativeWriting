@@ -1,0 +1,213 @@
+\vspace{-0.3cm}
+\section{Empirical Study}
+\label{sec:res}
+We evaluated MAPF-iBundle's performance, comparing it with ICTS and CBS, two recent state-of-the-art MAPF algorithms. ICTS and CBS were run with their recommended configurations~\cite{sharon2012conflict,sharon2012meta}. All algorithms were run within the independence-detection (ID) framework~\cite{standley2010finding}. This framework decomposes the problem to subproblems including subgroups of the agents that can be solved independently, leading to a lower effective problem size. For all algorithms, if no solution was found within 5 minute we consider it as a failure.
+
+\begin{table}%
+\centering
+ \resizebox{8cm}{!}{%
+\begin{tabular}{|l|rrrrrrrr|}
+\hline
+k & 8 & 9 & 10 & 11 & 12 & 13 & 14 & 15 \\ \hline
+CBS & 1 & 1 & 1 & 1 & 0.98 & 0.98 & 0.88 & 0.86 \\ \hline
+MAPF-iBundle & 1 & 1 & 1 & 1 & 0.98 & 1 & 0.96 & 0.9 \\ \hline
+ICTS & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 0.98 \\ \hline
+\end{tabular}}
+\caption{Success rate in 8$\times$8 grids}
+\label{tab:success-8x8}
+\end{table}
+Table~\ref{tab:success-8x8} shows the percentage of problem instances solved within the allotted 5 minutes, for MAPF problem instances in a $8\times 8$ grid. As can be seen, MAPF-iBundle performs better than CBS but somewhat worst than ICTS. For example, for 15 agents MAPF-iBundle solved 0.9 of the instances, CBS solved 0.86, and ICTS solved 0.98. Similar trends were observed on a smaller $3\times 3$ grid.
+
+\begin{table}%
+\centering
+\resizebox{8cm}{!}{%
+\begin{tabular}{|l|rrrrrr|}
+\hline
+k & 5 & 10 & 15 & 20 & 25 & 30  \\ \hline
+CBS & 1 & 0.96 & 1 & 0.98 & 0.92 & 0.8 \\ \hline
+MAPF-iBundle & 1 & 1 & 1 & 0.92 & 1 & 0.94  \\ \hline
+ICTS & 1 & 1 & 1 & 0.94 & 1 & 0.98  \\ \hline
+\end{tabular}}
+\caption{Success rate in the ``den 520'' map.}
+\label{tab:success-den}
+\vspace{-0.3cm}
+\end{table}
+
+
+Next, we performed similar experiments on the ``den 520'' map, taken from the ``Dragon Age'' video game and is available from Sturtevant's repository~\cite{NATHANS}. In this domain too, MAPF-iBundle compares favorably to CBS, and is able to solve slightly less instances than ICTS. We performed a similar experiment for another map (``brc202d''), oberving similar results. Thus, while MAPF-iBundle is not the best MAPF solver, it is certainly comparable to them. Note that MAPF frameworks, such as MA-CBS~\cite{sharon2012meta}, are orthogonal to MAPF-iBundle. Moreover, as discussed earlier, MAPF-iBundle allows more flexibility.
+
+%The top rows of table~\ref{tab:grids} show the runtime of the algorithms when solving problems on $3 \times 3$ grids, with the number of agents ranging between 4 and 8. For each number of agents, we randomly generated 50 instances and averaged their results. The $k'$ column shows the average effective number of agents after ID. As can be seen in the table, ICTS performs best, followed by MAPF-iBundle and CBS. The three algorithms were always successful at finding solutions to problems with up to 6 agents in the allotted time. With 7 agent, CBS succeeded in $92\%$ of the instances while MAPF-iBundle and CBS solved all instances successfully. With 8 agents, ICTS successfuly solved $94\%$ of the instances, followed by MAPF-iBundle with $84\%$ and CBS with only $52\%$. Overall, MAPF-iBundle scales well with the number of agents and outperforms CBS in these grids. Results for $8 \times 8$ grids are similar (bottom lines of table~\ref{tab:grids}) show a similar trend. 
+
+\comment{
+\begin{table}[h]
+\center
+\begin{tabular}{c|r|r|r|r}
+\hline
+{$\mathbf{k}$}   & {$\mathbf{k'}$}  & \bf{MAPF-iBundle} & \bf{ICTS}    & \bf{CBS}     \\ \hline
+\multicolumn{5}{c}{$ \mathbf{3 \times 3}$}              \\ \hline
+4 & 2.2 & 10     & 9     & 10      \\
+5 & 2.7 & 19     & 11    & 16     \\
+6 & 4.6 & 144    & 40    & 1,298   \\
+7 & 6.4 & 3,852   & 797   & 55,979  \\
+8 & 7.6 & 108,997 & 41,944 & 168,524 \\ \hline
+%4 & 2.2 & 10.3     & 9.3     & 9.7      \\
+%5 & 2.7 & 18.7     & 11.2    & 15.9     \\
+%6 & 4.6 & 143.9    & 39.7    & 1297.6   \\
+%7 & 6.4 & 3851.6   & 796.8   & 55979.4  \\
+%8 & 7.6 & 108996.7 & 41943.6 & 168523.7 \\ \hline
+\multicolumn{5}{c}{$\mathbf{8 \times 8}$} \\ \hline
+8  & 1.7 & 18    & 15   & 19   \\
+9  & 2   & 29    & 17   & 35    \\
+10 & 2.3 & 243   & 22   & 33    \\
+11 & 2.4 & 45     & 27   & 114   \\
+12 & 3.4 & 6,272  & 42   & 6,133  \\
+13 & 3.7 & 331   & 54  & 6,351  \\
+14 & 4.8 & 16,965 & 2,187 & 42,874
+%8  & 1.7 & 18.4    & 15.3   & 19.1   \\
+%9  & 2     & 29.1    & 17   & 35.3    \\
+%10 & 2.3     & 243.3   & 22.4   & 32.8    \\
+%11 & 2.4 & 45.2     & 27.1   & 114.3   \\
+%12 & 3.4 & 6271.9  & 42.4   & 6132.8  \\
+%13 & 3.7 & 331   & 54  & 6350.8  \\
+%14 & 4.8     & 16964.8 & 2186.5 & 42874
+\end{tabular}
+\caption{Runtime (ms) results on $3 \times 3$ and  $8 \times 8$ grids with no obstacles.}
+\label{tab:grids}
+\end{table}
+
+We also ran the algorithms on two maps, den520 and brc202d, from the ``Dragon Age'' video game, taken from Sturtevant's repository~\cite{NATHANS}. We varied the number of agents between 5 and 30. Table~\ref{tab:dao} shows the runtime of the algorithms on these maps (averaged over 50 randomly generated problem instances). When solving den520 instances, MAPF-iBundle outperformed CBS but was slower than ICTS. When solving brc202d instances, MAPF-iBundle performed slower than both ICTS and CBS for most sizes of agents.  MAPF-iBundles was able to solve over $80\%$ of the instances with 30 agents.
+
+
+\begin{table}[h]
+\center
+\begin{tabular}{c|r|r|r|r}
+{$\mathbf{k}$}   & {$\mathbf{k'}$}  & \bf{MAPF-iBundle} & \bf{ICTS}    & \bf{CBS}     \\ \hline
+\multicolumn{5}{c}{\bf{den520d}} \\ \hline
+5  & 1.0 & 262   & 41    & 73    \\
+10 & 1.1 & 456   & 178   & 12,271 \\
+15 & 1.3 & 1,264  & 320   & 5,505  \\
+20 & 1.4 & 25,038 & 18,289 & 117,511 \\
+25 & 1.5 & 4,840  & 1,298  & 27,570 \\
+30 & 1.8 & 20,322 & 7,181  & 66,520 \\ \hline
+
+%5.0  & 1.0 & 262.4   & 41.4    & 72.7    \\
+%10.0 & 1.1 & 455.5   & 177.8   & 12270.5 \\
+%15.0 & 1.3 & 1263.9  & 319.2   & 5504.6  \\
+%20.0 & 1.4 & 25037.9 & 18288.5 & 11750.5 \\
+%25.0 & 1.5 & 4839.8  & 1298.2  & 27570.1 \\
+%30.0 & 1.8 & 20321.9 & 7181.4  & 66519.5 \\ \hline
+
+\multicolumn{5}{c}{\bf{brc202d}}\\ \hline
+5  & 1.1     & 196   & 95    & 243    \\
+10 & 1.3 & 1,000   & 320    & 648      \\
+15 & 1.6 & 13,123 & 7,007  & 13,416 \\
+20 & 1.7 & 13,653 & 6,759   & 23,088 \\
+25 & 2 & 37,646 & 14,917 & 18,246  \\
+30 & 2.5 & 73,490 & 25,048 & 6,334 
+\end{tabular}
+\caption{Runtime (msec) of the algorithms on the ``den520d'' and ``brc202d'' dragon age maps ($257 \times 256$ with 37614 obstacles and $481 \times 530$ with 211779 obstacles respectively).}
+\label{tab:dao}
+\end{table}
+}
+%\begin{table}[h]
+%\begin{tabular}{ccccc}
+%$k$   & $k'$      & MAPF-iBundle  & ICTS     & CBS      \\
+%5  & 1.06     & 195.62   & 95.22    & 243.4    \\
+%10 & 1.286667 & 999.86   & 320.8    & 648      \\
+%15 & 1.646667 & 13122.54 & 7007.36  & 13415.58 \\
+%20 & 1.673333 & 13653.22 & 6759.2   & 23087.58 \\
+%25 & 2.013333 & 37646.12 & 14916.72 & 18246.2  \\
+%30 & 2.526667 & 73489.56 & 25048.16 & 6333.98 
+%\end{tabular}
+%\caption{Runtime of the algorithms on the ``brc202d'' dragon age map ($481 \times 530$, 211779 obstacles) grids with no obstacles.}
+%\end{table}
+%
+%Row Labels	CBS	MAPF-iBundle	ICTS
+%5	1	1	1
+%10	0.96	1	1
+%15	1	1	1
+%20	0.98	0.92	0.94
+%25	0.92	1	1
+%30	0.8	0.94	0.98
+%
+%
+%Row Labels	CBS	MAPF-iBundle	ICTS	Grand Total
+%5	1	1	1	1
+%10	1	1	1	1
+%15	0.96	0.98	1	0.98
+%20	0.94	0.96	0.98	0.96
+%25	0.96	0.94	0.96	0.953333333
+%30	1	0.82	0.94	0.92
+
+
+%To evaluate the performance of the auction algorithm, I generated various problem instances varying the grid size, number of agents and number of obstacles\footnote{The code framework for running these tests along with implementation of independence-detection, ICTS, CBS and $A^*$ were kindly provided by Guni Sharon. I implemented the auction code within this framework. CBS and ICTS were run with their recommended configurations based on Sharon et al.~\cite{sharon2012meta,sharon2012increasing}}.  I compare performance of the iterative combinatorial auction approach (ICA) with three baselines: (1) ICTS; (2) CBS, and (3) $A^*$.  All algorithms were run within the independence-detection framework, that is they were used by the independence-detection algorithm to find solutions for subproblems. Since all these algorithms find the optimal path allocation, I compare their performance in terms of runtime, nodes expanded and generated and success rate (algorithms are limited to complete within 5 minutes). 
+%
+%\subsection{Results on $8 \times 8$ grids}
+%In this set of experiments I ran the algorithms on $8 \times 8$ grids with the number of agents ranging between 3 and 10. In addition, I vary the number of obstacles in the grid (which affects the number of conflicts between agents) generating grids with no obstacles ($0\%$), grids with obstacles on $5\%$ of grid locations and grids with obstacles on $10\%$ of grid locations. Each configuration of number of agents and obstacles was run on 10 instances. Results were averaged over those instances. 
+%
+%Table~\ref{table:8by8} shows the performance of the algorithms on $8 \times 8$ grids with no obstacles. Since all algorithms were able to complete their run within 5 minutes, the table does not include success rates (which are 1 for all algorithms). As can be seen in the table, using the auction as the underlying search algorithm in the independence-detection framework (ICA) significantly outperforms independence-detection using A*. While ICA sometimes expands more nodes in its search, it generates significantly fewer nodes, resulting in lower runtime for problems with 5 or more agents. The performance of ICA is similar to that of CBS, where CBS typically generates and expands fewer nodes but takes longer to complete. 
+%
+%ICTS outperforms ICA, and this difference grows with the number of agents.ICA generating and expanding about twice as many nodes as ICTS when solving 10 agents instances. ICA and ICTS use a somewhat similar approach, in that each iteration in the auction (or node in ICTS) considers a particular combination of maximal travel costs for agents. However, these approaches differ in several ways, which can explain the results observed in the experiment:
+%First, ICTS explores the space of costs in a breadth-first manner, while ICA may not (the ordering will depend on the provisional allocation at the end of each iteration). Second, when examining each high-level tree node in ICTS, we only need to check whether there is a non-conflicting set of paths for \emph{all} agents. In contrast, the winner determination procedure in ICA requires finding the provisional allocation that maximizes revenue, even if it does not include all agents. In addition, in each iteration of the auction we might consider bids on paths of different costs from each agent (e.g. an agent may bid on paths of travel cost 4 that are priced at 1 and paths of cost 5 that are priced at 0). Thus, in the winner determination procedure we also sometimes test allocations that correspond to different ICTS nodes (e.g. costs of 4,5,6 and 5,5,6 might be tested in the same iteration of the auction). 
+%Based on the results discussed above, it seems that the overhead of determining the provisional allocation causes ICA to generate and expand more nodes.
+%
+%\begin{table}[h]
+%\begin{tabular}{l|llll|llll|llll}
+%           & \multicolumn{4}{c|}{\textbf{Runtime (msec)}}                      & \multicolumn{4}{c|}{\textbf{Nodes Expanded}}               & \multicolumn{4}{c}{\textbf{Nodes Generated}}              \\
+%\textbf{$k$} & \textbf{A*} & \textbf{CBS} & \textbf{ICA} & \textbf{ICTS} & \textbf{A*} & \textbf{CBS} & \textbf{ICA} & \textbf{ICTS} & \textbf{A*} & \textbf{CBS} & \textbf{ICA} & \textbf{ICTS} \\
+%3          & 3.1         & 3.1          & 6.2          & 6.4           & 83.2        & 83.2         & 87           & 87            & 388.6       & 118          & 119.5        & 119.5         \\
+%4          & 3.1         & 4.6          & 7.7          & 1.6           & 264.5       & 264.5        & 288.1        & 272.6         & 1231        & 377.9        & 408.8        & 391.3         \\
+%5          & 7.8         & 7.8          & 3.1          & 7.9           & 495.9       & 503.9        & 572.9        & 501.9         & 2328.7      & 700.2        & 824.5        & 733.5         \\
+%6          & 6.2         & 6.3          & 6.2          & 6.2           & 761.9       & 772.7        & 838.3        & 766.1         & 3583.2      & 1074.2       & 1209.9       & 1117.7        \\
+%7          & 7.9         & 7.7          & 7.9          & 6.2           & 1141.7      & 1236         & 1275.8       & 1151.4        & 5557.3      & 1705.7       & 1818.4       & 1654.6        \\
+%8          & 20.1        & 12.3         & 14.1         & 14.4          & 1613.4      & 2043.2       & 3019.7       & 1607.8        & 10783.8     & 2642         & 4023.2       & 2321.5        \\
+%9          & 276.3       & 23.1         & 15.6         & 11            & 2464.9      & 3344.6       & 4813.4       & 2217.6        & 36287.2     & 4152.5       & 6777.5       & 3200.7        \\
+%10         & 1427.5      & 21.9         & 7.7          & 8             & 3588.1      & 5478.6       & 6232.5       & 2920.4        & 119616.9    & 6555         & 8865.8       & 4240.9       
+%\end{tabular}
+% \caption{Performance of the algorithms on $8 \times 8$ grids with no obstacles. $k$ denotes the number of agents.}
+%   \label{table:8by8}
+%   \vspace{-0.3cm}
+%\end{table}
+%
+%The effect of the overhead in the winner determination procedure is exacerbated when auctions require more iterations, which is the case when there are increasingly more obstacles on the grid (and thus more conflicts). This can be seen in Figure~\ref{fig:obs}, where consistently ICA generates and expands significantly more nodes as the number of obstacles increases. As can be seen in the figure, this effect is more significant in ICA than in ICTS. 
+%
+%
+%\begin{figure}
+%\centering
+%\includegraphics[width=16cm]{figs/obsGenExp.pdf}
+%\caption{Performance on grids with obstacles: The left plot shows the average of nodes generated by ICTS and ICA on grids with 0,3 ($5\%$ of the grid) and 6 ($10\%$ of the grid) obstacles for each number of agents. The right plot shows the average of nodes expanded by ICTS and ICA on grids with 0,3 ($5\%$ of the grid) and 6 ($10\%$ of the grid) obstacles for each number of agents.}
+%\label{fig:obs}
+%\vspace{-0.5cm}
+%%  \vspace{-0.5cm}
+%\end{figure}
+%
+%Finally, I compare the performance of ICA when used with and without independence-detection. Recall that the independence-detection algorithm decomposes the problem to smaller subproblems, each including a subset of the agents. As shown by Standley~\cite{standley2010finding}, this can significantly reduce the required computation. Figure~\ref{fig:id} shows the performance as measured in runtime and nodes generated for ICA with independence-detection (ICA+ID) and without it. As can be seen in the figure, using independence-detection leads to significant savings (a similar trend exists for the number of nodes expanded). 
+%
+%\begin{figure}
+%\centering
+%\includegraphics[width=16cm]{figs/IDcom.pdf}
+%\caption{Performance of ICA with independence-detection (ICA+ID) and the basic ICA algorithm on $8 \times 8$ grids without obstacles: The left plot shows the average the runtime of the algorithms . The right plot shows the average number of nodes generated.}
+%\label{fig:id}
+%%  \vspace{-0.5cm}
+%\vspace{-0.5cm}
+%\end{figure}
+%
+%\subsection{Results on $3 \times 3$ grids}
+%
+%Table~\ref{table:3by3} shows the performance of the algorithms on $3 \times 3$ grids with no obstacles and number of agents ranging between 4 to 8 (not showing A* which performed significantly worse than the other algorithms). Overall, results are similar to those obtained on $8 \times 8$ grids. A notable difference is that ICA typically has lower runtime than ICTS, despite generating more nodes. A possible explanation is that while ICTS generates and expands fewer nodes, it expanded more higher-level nodes in its breadth-first search of the increasing cost tree which resulted in higher overhead computations. This higher runtime also caused ICTS to fail to find a solution within the allotted 5 minutes in $20\%$ of the instances with 8 agents, while ICA was always able to find a solution in 5 minutes.
+%
+%\begin{table}[h]
+%\begin{tabular}{l|lll|lll|lll}
+%\textbf{}  & \multicolumn{3}{c|}{\textbf{Runtime (msec)}} & \multicolumn{3}{c|}{\textbf{Nodes Expanded}} & \multicolumn{3}{c}{\textbf{Nodes Generated}} \\
+%\textbf{$k$} & \textbf{CBS} & \textbf{ICA} & \textbf{ICTS} & \textbf{CBS} & \textbf{ICA} & \textbf{ICTS} & \textbf{CBS}  & \textbf{ICA} & \textbf{ICTS} \\
+%4          & 6.3          & 11           & 10.9          & 2025404.6    & 130.5        & 56.6          & 45020.3       & 135.1        & 74.3          \\
+%5          & 12.4         & 14           & 7.6           & 2025792.3    & 958.4        & 177.7         & 45287.2       & 823          & 225.9         \\
+%6          & 23.3         & 124.8        & 18.6          & 2026468.9    & 13272        & 3294.1        & 45646.3       & 9414.9       & 556.1         \\
+%7          & 243.2        & 906.1        & 295           & 2032188.2    & 65547.1      & 46550.4       & 46303.6       & 42509.1      & 2135.8        \\
+%8          & 61536        & 46046.8      & 86892.6       & 4347877      & 946883.7     & 965771        & 123934        & 468616.8     & 24167        
+%\end{tabular}
+% \caption{Performance of the algorithms on $3 \times 3$ grids with no obstacles. $k$ denotes the number of agents.}
+%   \label{table:3by3}
+%   \vspace{-0.5cm}
+%\end{table}
+%

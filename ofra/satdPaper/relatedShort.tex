@@ -1,0 +1,40 @@
+% !TeX spellcheck = en_US
+\section{Related Work}
+\label{sec:related}
+%In this section, we discuss prior work on multi-agent communication in the BDI and decision theory literatures and distinguish the SATD problem from previously studied communication problems. 
+Theories of teamwork and collaboration~\cite{grosz1996collaborative,cohen1990intention,sonenberg1992planned} emphasize the key role of communication in teamwork. BDI approaches to multi-agent planning, e.g. STEAM~\cite{tambe1997agent}, often base their communication mechanisms on these theories. BDI approaches typically do not reason about uncertainty and utilities~\cite{pynadath2002communicative}. 
+
+% Other works have developed teamwork programing languages that include explicit rule-based communication mechanisms~\cite{weerasooriya1995design,pokahr2005jadex}. 
+
+Prior work on decision theoretic approaches to multi-agent communication can generally be classified into two types: approaches that reason about communication during planning and those that reason about communication during execution.  
+%The DEC-POMDP-COM~\cite{goldman2003optimizing} and the COM-MTDP~\cite{pynadath2002communicative} models provide a theoretical model for reasoning about communication during planning, and they include communication actions in the agents' policies. Spaan et al.~\shortcite{spaan2006decentralized} developed a model in which communicated information is included in the action vectors of agents.
+ Planning time approaches~\cite{goldman2003optimizing,pynadath2002communicative,spaan2006decentralized} assume that all possible observations that agents might receive and all possible states they might encounter are known at planning time, and they produce a \emph{joint policy} that all agents follow. In contrast, SATD models situations in which an individual agent learns new information that was not available or planned for at planning time, and it produces a communication policy for that \emph{single agent}. 
+%In settings in which some information cannot be anticipated, generating a joint communication policy at planning time is infeasible and therefore planning-time approaches are not applicable to the SATD problem. 
+
+
+Execution time approaches to communication~\cite{xuan2001communication,oliehoek2007dec,emery2005game,roth2005reasoning,roth2006communicate,wu2009multi} do not plan when to communicate ahead of time, but rather decide at every time step whether to communicate or not. Execution-time approaches reduce computational complexity as agents only reason about communication given their actual observations. These approaches, however, are myopic, potentially leading to non-optimal behavior. More importantly, these execution time approaches cannot be applied to  the SATD problem because they assume that all possible observations are known at planning time and that a centralized planner generated policies for the agents. In contrast, the MDP-PRT agent is not myopic; it allows agents to plan to communicate at later stages of execution. It also allows for unanticipated information and assumes that agents individually generate plans for the constituent tasks for which they are responsible. Because there is no central planning, even if information was anticipated by one of the agents at planning time, it might not have be considered by all agents.
+
+%The MDP-PRT agent is not myopic; it allows agents to plan to communicate at later stages of execution. More importantly, these execution time approaches cannot be applied to  the SATD problem because they assume that all possible observations are known in advance (at planning time) and that a centralized planner generated policies for the agents. In contrast, SATD allows for unanticipated information and assumes that agents individually generate plans for the constituent tasks for which they are responsible, meaning that even if information was anticipated by one of the agents at planning time, it might not have be considered by all agents. 
+%Allowing incomplete and imperfect knowledge about others' plans integrates naturally with BDI approaches.
+
+
+%For example, some approaches decide to communicate when doing so will affect the next action taken by the agents~\cite{roth2005reasoning, roth2006communicate}. Other approaches communicate information when the expected observations of the agents are sufficiently inconsistent~\cite{wu2009multi}. 
+%These execution-time approaches reduce computational complexity: agents only reason about communication given their actual observations. 
+%However, execution-time approaches are myopic, potentially leading to non-optimal behavior. 
+%First, they assume that all possible observations are known in advance (during planning). Second, they assume that a centralized planner generated policies for the agents. In contrast, SATD allows for unanticipated information and assumes that agents gents individually generated plans for constituent activities they are responsible of. Thus, even if information was anticipated by one of the agents at planning time, it does not necessarily mean it was considered by all agents. Allowing incomplete and imperfect knowledge about others' plans integrates naturally with BDI approaches.
+
+%The SATD model differs from these approaches in several ways. First, it is not myopic; it allows agents to plan to communicate at later stages of execution. Second, the SATD problem models situations in which some information is not anticipated at planning time or was not considered during team planning. Third,
+% by explicitly defining the beliefs the agent has about the intentions of the other agents, it enables modeling incomplete and possibly imperfect knowledge about other agents' plans. That is,
+%  it does not assume that complete plans are generated by a centralized planner but rather that agents individually generated plans for constituent activities they are responsible of. Thus, even if information was anticipated by one of the agents at planning time, it does not necessarily mean it was considered by all agents. Therefore an agent might still need to reason about whether to share that information. Allowing incomplete and imperfect knowledge about others' plans integrates naturally with BDI approaches.
+
+
+Prior work on integrating BDI and DT models includes ``translations'' between these models~\cite{simari2006relationship,schut2002partially} and formal ways of integrating them~\cite{maheswaran2004adjustable,nair2003integrating}.  Work that combines BDI concepts with decision theoretic approaches to reason about communication includes Kwak et al.~\shortcite{kwak2011robust} who define BDI inspired ``trigger points'' for communication in a DEC-POMDP framework, and Kamar et al.~\shortcite{kamar2009incorporating} who developed PRTs to represent collaborative activities which we discuss in the approach section.  Interactive POMDPs~\cite{gmytrasiewicz2005framework} also integrate beliefs about other agents in an MDP framework.
+ In I-POMDPs, beliefs are over agent ``types'' which are distinguished by an agent's optimality criteria and other canonical POMDP components.  In contrast, in MDP-PRT the beliefs are over collaborating agents' plans and are compactly represented in PRTs. 
+
+
+
+
+%type of agents consists of its belief and optimality criteria
+%depends on
+%We extend the work by Kamar et al.~\shortcite{kamar2009incorporating} by formally defining the SATD problem and developing a new approach to reasoning about communication that considers sequential decision making and reasons not only about whether to communicate, but also about when to do so. 
+

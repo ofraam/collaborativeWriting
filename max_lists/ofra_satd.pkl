@@ -1,0 +1,17 @@
+(i__main__
+store_max_lists
+p1
+(dp2
+S'cosine'
+p3
+(lp4
+sS'sm'
+p5
+(lp6
+sS'lev'
+p7
+(lp8
+sS'jelly'
+p9
+(lp10
+sb.

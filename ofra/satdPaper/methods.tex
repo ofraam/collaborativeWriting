@@ -1,0 +1,64 @@
+\section{Empirical Methodology}
+\label{sec:domain}
+We tested the MDP-PRT agent using a modified version of the Colored Trails (CT) game used by Kamar et al.~\shortcite{kamar2009incorporating}.  An example configuration of the game is shown in Figure~\ref{fig:game}
+The game is played by two agents, the \emph{Partner} (PAR) and the \emph{Observer} (OBS), on a $4\times 4$ board. Each square in the board is of one of four colors. At the onset of the game, \emph{PAR}  is located on a board square ($(0,0)$ in Figure~\ref{fig:game}). 
+It possesses chips of the four colors and uses them to move on the board: it can move to an adjacent square (vertically or horizontally) by giving up a chip of the same color as the destination square. Its task is to reach the goal square. 
+
+Each square has some probability that a trap will appear on it based on its color. Traps are represented by the ``bomb'' icon. When an agent moves into a trap square, it cannot move further and the game ends. PAR has uncertain knowledge about the distribution of traps (i.e. the probability a trap will appear on each color), but does not know their exact locations.  OBS learns the exact locations of traps at the onset of the game.  It also knows the chips that  PAR possesses and  its knowledge regarding trap distributions. 
+
+%Some squares on the board have traps. When an agent moves into a trap square, it cannot move further and the game ends. An example board configuration is shown in Figure~\ref{fig:game}.  One of the agents, called the \emph{Observer}, learns the exact locations of traps on the board. The other agent, called the \emph{Partner}, knows a possibly inaccurate probability distribution over trap locations, but does not know the exact locations of traps. The Observer also knows the chips that its partner possesses and its partner's knowledge regarding trap distributions. 
+The game is cooperative and the score (utility)  is calculated as follows: the agents receive 100 points if  PAR reaches the goal and 5 points for each remaining chip it holds at the end of the game. If PAR does not reach the goal, agents are penalized according to its distance from the goal (10 times Manhattan distance from the goal). 
+%The game is cooperative, with the final utility for both agents determined based on the final location of the Partner agent. 
+
+Each turn in the game consists of two phases: In the first phase, the communication phase, OBS  can  choose to perform an \emph{inform} action that will reveal trap locations to PAR. Informing, however, incurs  a cost that is deducted from the agents' final score. OBS therefore needs to reason about the utility of an inform action by weighing the benefits and costs entailed by it. In the second, movement, phase, PAR moves using its chips. The game ends when one of the following occurs: PAR reaches the goal or moves to a trap location, or after a maximal fixed number of turns passes.
+% without reaching a goal or a trap.
+
+%In our experiments we vary the game configuration in the following ways: (1) the structure of the board and chips possessed by the Partner agent; (2) the trap distribution on the board, where each square has a probability of having a trap based on its color; (3) knowledge of the Partner regarding trap distribution, and (4) the communication cost. 
+%For example, a specific configuration might have a structure as shown in Figure~\ref{fig:game} and a 0.2 probability for red squares to include traps with zero probability of traps appearing in any of the other colors. The Partner's knowledge about the distribution of traps can be accurate, which means that although it does not know the actual trap locations, it knows the probability for a trap to appear on each square. Alternatively, the Partner may be completely unaware of the possible existence of traps, in which case it will plan assuming there are no traps on the board. 
+
+%TO ADD: varying knowledge of observer about the chips of partner
+
+
+
+\begin{figure}
+\centering
+\includegraphics[width=4cm]{figures/gameCropped.pdf}
+\caption{An example CT game configuration. }
+\label{fig:game}
+  \vspace{-0.5cm}
+\end{figure}
+
+This game setting encompasses some of the key characteristics of the healthcare domain and enables studying them more abstractly: (1)  PAR's alternative plans and the uncertain knowledge of  OBS about these plans correspond to caregivers' alternative treatment plans and their incomplete knowledge of others' treatment plans; (2) OBS seeing  PAR's location  corresponds to a caregiver observing other caregivers' actions by reading notes in the medical record; (3) learning about traps corresponds to caregivers detecting problems with a treatment plan after observing a change in patient status, and (4) communication is costly due to caregivers'  limited time and many responsibilities. 
+%In the context of healthcare, communication cost may be seen more as an interruption management problem rather than a technical ``bandwidth'' problem. 
+%Thus, despite being seemingly simplistic, the game enables studying the effects of different dimensions of the problem in a clean way.
+
+\subsection{MDP-PRT for the CT Domain}
+ We implemented OBS as an MDP-PRT agent that makes the decision of whether to share trap locations ($o^*$) with PAR. PAR's task of getting as close as possible to the goal represents its constituent task in the collaborative activity of OBS and PAR. At the onset of the game, when OBS learns the true locations of traps, value iteration is run to generate a communication policy. 
+% \note{Ofra}{Does the last sentence make senese? help? confuse?}
+  The initial PRT, representing OBS's beliefs  about PAR's possible plans ($b_{SP}$), is derived from the board and from OBS's knowledge of PAR's knowledge of trap distributions. For example, if OBS knows PAR has no knowledge about trap locations,  it assigns equal probabilities to all shortest paths that PAR can take. 
+  
+%  (i.e. it assumes PAR will try to avoid dangerous squares, based on its probabilistic knowledge about trap locations).
+$\varphi_{comm}$ revises  OBS's beliefs assuming it communicates the trap locations to PAR. It computes new shortest paths assuming that PAR will choose one of the shortest paths towards the goal that do not pass through any traps. For example, in the configuration shown in Figure~\ref{fig:game}, and assuming that PAR has no knowledge of trap locations, OBS's initial  $b_{SP}$ will assign equal probabilities to all shortest paths from PAR's location $(0,0)$ to its goal $(2,3)$. When considering the ``inform'' action in this state,
+  the modified belief according to $\varphi_{comm}$ will assign equal probabilities to all shortest paths that do not pass through $(2,0)$. 
+   
+   Whether or not OBS chooses to inform PAR, the generation of the next possible states ${b_{SP}}'$ also takes into account PAR's next possible movements (which OBS will observe during execution). The states correspond to $a_1$'s modified beliefs according to $\varphi_{obs}$. That is, OBS knows it will observe PAR's movements at execution time and reasons about the possible changes in the probabilities of different paths. For each possible movement, $\varphi_{obs}$ generates a new state ${b_{SP}}'$ by eliminating plans that do not include that movement and re-normalizing the probabilities of the remaining paths.   
+   
+   During the game, OBS revises its belief (${b}_{SP}$) at each turn by eliminating paths that do not include the observed movements. It decides whether to communicate based on its computed policy.
+   
+%    communicates based on the MDP-PRT' generated policy.  That is, it observes PARs movements and revises its belief accordingly (eliminating paths that do not include the observed movements). Then the policy specifies whether it should choose to inform or not given its the state ${b}_{SP}$.
+   
+   
+%   returns
+%   the next possible states also
+%   it then also revises $b_{SP}$ to take into account the possible next steps of PAR (which it will observe during execution) according to $\varphi_{obs}$. That is, OBS knows it will observe PAR's movements at execution time and reasons about the possible changes in the probabilities of different paths based on these movements. For each possible movement, $\varphi_{obs}$ generates a new state ${b_{SP}}'$ by eliminating plans that do not include the observed movement and renormalizing the probabilities of the remaining paths. 
+%   
+%   Using These updates are done at the onset of the game to compute the policy.   
+
+
+
+ 
+
+%Although this game setting is abstract and much simpler than the medical care coordination problem described in Section~\ref{sec:intro}, it encompasses some of its key characteristics: (1) caregivers often have alternative treatment plans and have only some idea about other caregiver' plans. This corresponds to the Partner's alternative paths and the uncertain information the Observer has about which path the Partner will choose;(2) caregivers can read other caregivers' notes and thus observe some of the treatment actions taken by them. This corresponds to the Observer being aware of the Partner's movement on the board; (3) The Observer learning about a trap location corresponds to a caregiver's knowledge about possible obstacles in following a certain treatment plan; (4) Costly communication arises in the healthcare domain due to caregivers'  limited time and many responsibilities. In the context of healthcare, communication cost may be seen more as an interruption management problem rather than a bandwidth problem. Thus, despite being simplistic, the game captures some of the salient features in the care coordination problem and enables studying the effects of different dimensions including communication cost and agents' uncertainty about the world and about each others' plans in a clean way. 
+
+
+

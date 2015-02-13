@@ -1,0 +1,76 @@
+\section{Approach}
+\label{sec:app}
+
+This section proposes a solution to the 2-agent SATD problem $\langle a_1, a_2, b_{SP}, V, o^*, \varphi_{comm}, C \rangle$, where an agent $a_1$ learns new information $o^*$ and needs to reason whether and when to communicate $o^*$ to $a_2$. 
+To solve the 2-agent SATD communication problem, we use an MDP in which the states explicitly represent $a_1$'s beliefs about $a_2$'s plans. 
+The choice of representation for the agent's beliefs $b_{SP}$ is key, as it affects the way $b_{SP}$ can be revised and therefore the computational efficiency of solving the MDP. Our approach uses a PRT to represent $b_{SP}$. Henceforth we refer to the integrated MDP-PRT representation as ``MDP-PRT''.
+
+The PRT representation extends the SharedPlans~\cite{grosz1996collaborative} formalization by introducing decision-theoretic notions  of uncertainty and utilities to the hierarchical plan representation for recipes. 
+Formally,  a PRT for a complex action defines a probability distribution over the possible recipes (plans) for accomplishing that action. The recipes are represented in an AND/OR tree. AND nodes represent complex actions that need to be carried out. Probabilities over OR branches  represent the agent's belief about its partners' possible alternatives for carrying out these complex actions.
+% (e.g., the probabilities the PCP assigns to alternative treatments the neurologist might choose).
+  We chose PRTs because they are a compact representation and their decomposable structure allows reasoning about non-dependent activities separately.
+
+ In the MDP-PRT $\langle A, S, R, Tr, s_0 \rangle$, $A$ includes two actions {\em inform} (communicating $o^*$) and $\neg${\em inform} (not communicating $o^*$). Each state in $S$ encompasses $a_1$'s beliefs about $a_2$'s plans (i.e., the PRT corresponding to $b_{SP}$).\footnote{$b_{SP}$ also includes $a_1$'s own plans but $a_1$ does not need to reason about them in the context of information sharing.} 
+ We denote a state by $b_{SP}$.
+% as it is equivalent to $s$.  
+ The initial state ${b_{SP}}_{0}$ corresponds to $a_1$'s initial beliefs about the SharedPlan.
+The reward function is a function of $V$ and $C$: the reward for a state $b_{SP}$ is the  value of the constituent tasks completed in the last time step minus the cost of communication if $a_1$ chose to inform $a_2$. 
+The transition function, $Tr({b_{SP}}',a,b_{SP})$, defines the probability of reaching state ${b_{SP}}'$, when taking action $a$ in state $b_{SP}$. $a_1$'s belief may change for two different reasons. First, if $a_1$ communicates $o^*$ to $a_2$, then $b_{SP}$ changes to $\varphi_{comm}(b_{SP},o^*)$. 
+Second, as $a_2$ executes actions in its constituent plans, $a_1$ may ``observe'' $a_2$'s actions or results of those actions and learn more about $a_2$'s plans. To reflect this reasoning, we define an additional function, $\varphi_{obs}(b_{SP})$. This function takes as input $b_{SP}$ and returns the set of next expected beliefs $\mathbf{b_{SP}^{next}}$ and their probabilities $\mathbf{Pr(b_{SP}^{next})}$. 
+
+%This set of beliefs is a result of reasoning about the information that is encompassed in ${SP}_b$: The set of actions that might be observed are derived from the possible recipes in the PRT describing ${SP}_b$. The probability of observing a specific actions is the sum of the probabilities of recipes that include that action. $\varphi_{obs}$ iterates over the set of actions in the recipes. For every such action $act$, a revised PRT representing the possible new beliefs ${SP}_{b}^{next}$ is created by eliminating recipes from the PRT that are not consistent with performing that action. Then, it normalizes the probabilities of the remaining recipes (this is equivalent to the subtraction operator described by Kamar et al.~\shortcite{kamar2009incorporating}). The probability for the resulting ${SP}_{b}^{next}$ corresponds to the probability of observing $act$ given the PRT of ${SP}_b$. 
+
+ To illustrate, we consider the care coordination problem. The primary care provider (PCP) has beliefs about the neurologist's treatment options and the likelihood each might be chosen. When the PCP considers whether to share new information about the patient (e.g. that the child had a seizure), she reasons about the effect of this information on the neurologist's plans ($\varphi_{comm}$). Whether or not she decides to inform the neurologist, her beliefs also evolve with time as she learns about actions the neurologist has executed ($\varphi_{obs}$). For example, if she learns that the neurologist ordered certain lab tests, she might revise her beliefs if the lab tests are consistent with some plans but not with others.
+
+
+Algorithm~\ref{alg:Al} gives the pseudo-code for $Tr({b_{SP}}',a,b_{SP})$. First, if $a_1$ chooses to inform, $b_{SP}$ is updated using $\varphi_{comm}$ (lines 2-3). If  ${b_{SP}}'$ is one of the possible next states according to $\varphi_{obs}$, its probability based on $\varphi_{obs}$ is returned (lines 4-6). If it's not included in the set of next possible beliefs the transition probability is 0 (line 7). 
+%The process is also illustrated in Figure~\ref{fig:transition}.
+We note that although each state encompasses a probability distribution over plans, the state space of the MDP is not continuous because the set of considered possible beliefs is discrete and finite. 
+
+%\begin{figure}
+%\centering
+%\includegraphics[width=5cm]{figures/diagram_scissored.pdf}
+%\caption{The process of modifying beliefs. The input $b_{SP}$ represents a state, the output is a set of possible new states $\mathbf{{b_{SP}}'}$.}
+%\label{fig:transition}
+%  \vspace{-0.5cm}
+%\end{figure}
+
+
+\begin{algorithm}
+\DontPrintSemicolon % Some LaTeX compilers require you to use \dontprintsemicolon instead
+\KwIn{${b_{SP}}',a,b_{SP}$}
+%\KwOut{The largest element in the set}
+$Pr({b_{SP}}') \gets 0$\;
+\If {$a=inform$} {
+	$b_{SP} = \varphi_{comm}(b_{SP},o^*)$
+}
+$ \mathbf{\langle b_{SP}^{next}, Pr(b_{SP}^{next})\rangle}$ = $\varphi_{obs}(b_{SP})$\;
+\If {${b_{SP}}'$ in $\mathbf{b_{SP}^{next}}$}
+{
+	\Return {$Pr({b_{SP}}')$ according to $\mathbf{Pr(b_{SP}^{next})}$}	
+}
+\Return{$0$}\;
+\caption{The transition function. }
+\label{alg:Al}
+%\vspace{-0.5cm}
+\end{algorithm}
+
+
+
+
+ An optimal single agent communication policy can be computed using any MDP solver, e.g. value iteration algorithm~\cite{sondik1971optimal} used in our implementation. This policy computation is performed when a new observation $o^*$ is obtained by an agent $a_i$ at time $t$. During subsequent rounds, the agent uses the computed policy to decide whether to inform $a_2$ of $o^*$. 
+ 
+ The MDP-PRT can be viewed as a decision-theoretic representation that supports the monitoring and execution of a SharedPlan. While we focused on the question of sharing new information, a similar approach can be taken to reason about whether to help a teammate or ask teammates for information~\cite{kamar2009incorporating}.  We also note that while in our empirical domain agents could observe each other's actions, the MDP-PRT can also be used if not all actions are observable by modifying $\varphi_{obs}$ to consider the possibility of not observing an action.
+   We discuss possible extensions of the MDP-PRT to larger groups of agents in the discussion section.  
+ 
+
+%\note{ofra}{things I think we need to say and I'm not sure where to say are commented out in agent2.tex}
+%\begin{itemize}
+%\item We chose PRTs because they provide a natural way to decompose collaborative activities and reason about non-dependent activities separately. This allows for efficient implementations of $\varphi_{obs}$ and $\varphi_{comm}$. 
+%\item  $\varphi_{comm}$ is domain dependent and is given as part of the input in SATD. We note that our description of $\varphi_{obs}$  assumes that $a_1$ expects to learn about $a_2$'s actions or choices during execution, and that the probabilities for observing an action correspond to the probability that the action will be chosen. It is possible to think about scenarios where some actions are observable while others are not. Such scenarios can be addressed by explicitly defining an observation function similar to the way an observation function about the world is defined in POMDPs. 
+%\item From a domain modeling perspective, using a PRT to represent ${SP}_{b}$ allows the modeller to consider the possible plans and tasks agents execute as a whole, instead of explicitly representing each possible observation that $a_1$ might obtain. This also allows to model obsevations about plans at different levels -- while an observation can correspond to learning that $a_2$ has taken a specific action, it can also correspond to a choice of a higher level complex action (recipe) that could eliminate branches in the PRTs OR nodes. These different observations are all encompassed withim the PRT and do not need to be specified explicitly
+%\item The MDP-PRT can be seen as a decision-theoretic representation that supports monitoring the execution of a SharedPlan. While we focused on communication, a similar approach can be taken for other purposes (e.g., helpful behavior more broadly)
+%\end{itemize}
+
+
+ 

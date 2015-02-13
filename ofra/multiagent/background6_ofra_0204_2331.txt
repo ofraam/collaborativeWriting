@@ -1,0 +1,73 @@
+\section{Background}
+\label{sec:bg}
+%\note{Ofra}{This is from my project. Please improve and shorten. Possibly move to introduction.}
+%This section presents the MAPF problem and the iBundle auction mechanism that we use to solve MAPF. We also describe the increasing cost tree search (ICTS) algorithm as we use techniques implemented in ICTS in our auction implementation. We also compare the auction mechanism with ICTS, discussing their similarities and differences.
+
+To describe the relation between ICA, MAPF, and ICTS, we first provide background on both. 
+%This section presents and defines the MAPF problem and the iBundle auction mechanism. We also describe the increasing cost tree search (ICTS) algorithm for solving MAPF.
+
+\subsection{Iterative Combinatorial Auctions (ICA)}
+
+
+%\note{Roni}{I think a formal definition of an auction and ICA would be good.}\note{Ofra}{added}
+In combinatorial auction the auctioneer puts up for sell a set of items $M$ and agents bid on bundles of items $B \subset M$. The auction determines a final allocation of bundles based on agents' bids, such that no item is sold to more than one agent.
+Iterative combinatorial auctions (ICA) are an auction mechanism consisting of multiple rounds (iterations). At each iteration, agents submit bids and the auctioneer updates prices, until the auction terminates. An {\em happy} agent is an agent that receives one of the bundles it bids on. The auction terminates when (a) all agents are happy (a feasible allocation was found), or (b) all agents place exactly the same set of bids in successive iterations (no solution exists). 
+
+%\note{Guni}{ Am I right?}\note{Roni}{I assume there's another term for {\em happy} that we should use, but have no clue what it is.} \note{Ofra}{Ofra: actually ``happpy'' is the formal term used in David's papers.}. Iterative auctions require less effort from agents as they do not need to express their entire preferences. 
+
+iBundle~\cite{parkes2001iterative} is an example of a well-known ICA mechanism. 
+%We used the iBundle~\cite{parkes2001iterative} ICA mechanism to solve the MAPF problem.
+In iBundle, each iteration includes three stages: (1) bidding, (2) winner determination, and (3) price update. In the bidding stage, agents bid on bundles based on the current ask prices. Agents can submit $XOR$ bids, i.e., bid on alternative bundles that they desire but stating that they wish to receive at most one of those bundles.
+%It has been shown that if agents bid their \emph{myopic best response}, that is they bid on the bundles that maximize their value given the current ask prices, the auction is truthful~\cite{parkes2001iterative}.
+In the winner determination process, the auctioneer determines a provisional allocation that maximizes revenue based on the current bids. An item can only be included in one bundle in the provisional allocation (that is, we cannot assign the same item to two different agents). Finally, prices are updated as follows: for each bundle that an ``unhappy'' agent bid on, the price is raised to the maximum bid received on that bundle by an unhappy agent plus $\epsilon$.  $\epsilon$ is a parameter of the auction defining the minimal increment size in the auction 
+%\note{Guni}{ I didnt understand this last (long) sentence?}. 
+Intuitively, this means that prices for bundles that include items with higher demand are raised as the auction progresses. This might cause the agents who bid on them to switch to other bundles. Alternatively, if agents have a high valuation for a bundle they will keep bidding on it despite the higher prices, leading other agents to ``lose'' and update their bids. 
+
+
+%\note{Guni}{ The new approach is conceptually different, we do not update prices we update revenue. This might cause confusion later on.}\note{Roni}{We updated prices and the agents then update their bids to match the prices, resulting in more revenue.} \note{Ofra}{I  think Guni is right that in the self-interested case if there are different costs etc. we can't do the second approach because we assume how the agents will update their bids and that might not hold. that's a possible reason to only describe the old one.  or note that the new one only works in the cooperative setting.}
+%In the approach section we describe how iBundle can be implemented to solve MAPF problems.
+
+\subsection{Multi-Agent Path Finding (MAPF)}
+In the {\em multi-agent path finding} (MAPF) problem, we are given a graph, $G(V,E)$, and a set of $k$ agents labeled $a_1 \dots a_k$. Each agent $a_i$ has a start position $s_i \in V$ and goal position $g_i \in V$. At each time step an agent can either {\em move} to a neighboring location or can {\em wait} in its current location. The task is to return the least-cost set of actions for all agents that will move each of the agents to its goal without {\em conflicting} with other agents (i.e., without being in the same location at the same time or crossing the same edge simultaneously in opposite directions). MAPF has practical applications in robotics, video games, vehicle routing, and other domains~\cite{silver2005coopeartive,dresner2008aMultiagent}. Optimally solving MAPF in its general form is NP-complete \cite{surynek2010anOptimization}. 
+
+
+
+
+%\subsection{The iBundle Iterative Combinatorial Auction}
+%\note{Ofra}{do we need an example of an auction or is this enough?}
+%\note{Guni}{I think the background should be shorter (I shortened it but its still to long). If the reader wants more details he can read the original work. I dont think we should have examples in the background section. We should give them later on.}\note{Roni}{Both are Ok} \note{Ofra}{I'm ok with only having examples later. we just need to add back the mdd examples to the approach section then.}
+%In combinatorial auctions, the auctioneer has items for sale, as in a regular auction. However, agents may bid on \emph{bundles} of items, that is a set of items they wish to buy. Similarly, prices are assigned to bundles rather than individual items, supporting non-linear pricing of bundles.
+
+% For example, assume an auctioneer wishes to sell a winter jacket, boots and hat. Bidders may bid on different bundles (e.g. jacket and boots for \$10,  boots and hat for \$5). In particular, they can submit $XOR$ bids that specify a set of bundles of which they would only want to buy one. Bundle prices are determined by the demand of the bundle and do not have to align with the sum of prices of individual items in the bundle. For example, a bundle that includes only jacket may be priced at \$3 and a bundle that includes only the hat at \$4, while a bundle including both the jacket and the hat could be priced at \$12. Note, however, that a bundle that is a super-set of another bundle cannot be priced lower than its subset (e.g. the jacket, hat and boots cannot be priced at less than \$12).
+
+%In iterative combinatorial auctions (ICA), the auction has multiple rounds (iterations). At each iteration, agents submit bids and the auctioneer updates prices, until the auction terminates. Iterative auctions require less effort from agents as they do not need to express their entire  preferences. We used the iBundle~\cite{parkes2001iterative} ICA mechanism to solve the MAPF problem.
+
+%In iBundle, each iteration includes three stages: (1) bidding; (2) winner determination, and (3) price update.
+%In the bidding stage, agents bid on bundles based on the current ask prices. Agents can submit $XOR$ bids, that is bid on alternative bundles that they desire but stating that they wish to receive at most one of those bundles.
+%It has been shown that if agents bid their \emph{myopic best response}, that is they bid on the bundles that maximize their value given the current ask prices, the auction is truthful~\cite{parkes2001iterative}.
+%In the winner determination process, the auctioneer determines a provisional allocation that maximizes revenue based on the current bids. An item can only be included in one bundle in the provisional allocation (that is, we cannot assign the same item to two different agents). Finally, prices are updates as follows: for each bundle that an ``unhappy'' agent (i.e. an agent that did not receive any of its bundles in the provisional allocation) bid on, the price is raised to the maximum bid received on the bundle by an unhappy agent plus $\epsilon$, where $\epsilon$ is the minimal increment size in the auction. Intuitively, this means that prices for bundles that include items with higher demand are raised as the auction progresses. This might cause the agent who bid on them to switch to other bundles, or alternatively, if agents have a high valuation for a bundle they will keep bidding on it despite the higher prices, leading other agents to ``lose'' update their bids. The auction terminates when the provisional allocation includes all of the agents, or when the same bids are submitted in two consequent rounds. In the approach section we describe how iBundle can be implemented to solve MAPF problems.
+
+\subsection{The Increasing Cost Tree Search}
+The ICTS algorithm~\cite{sharon2012increasing} is novel MAPF solver considered state-of-the-art in many settings~\cite{sharon2012meta}; it consists of two levels.
+
+The high-level phase performs a search on a search tree called the {\em increasing cost tree} (ICT). Each node in the ICT consists of a $k$-vector $\{C_1,C_2, \ldots C_k\}$, where $k$ is the number of agents in the problem. An ICT node represents {\em all} possible solutions in which the cost of the individual path of each agent $a_i$ is exactly $C_i$.
+The ICT is structured in such a way that there is a unique node in the tree for each possible combination of costs. The high-level phase searches the tree in an order that guarantees that the first solution found (i.e., ICT node whose $k$-vector corresponds to a valid solution) is optimal.
+
+For each ICT node visited, the high-level phase invokes the low-level phase to check if there is a valid solution that is represented by this ICT node. The low-level phase itself consists of a search in the space of possible solutions where the costs of the different agents are given by the specification of the high-level ICT node.
+%The  task of the low-level is to determine whether there is a valid solution for a given ICT node.
+This is performed using a variant of the {\em multi-value decision diagram} (MDD)~\cite{srinivasan1990algorithms} . The MDD data-structure stores all possible paths for a given cost and a given agent. The low-level phase searches for a valid (non-conflicting) solution amongst all the possible single-agent paths, represented by the MDDs.
+ICTS also uses special pruning techniques that can quickly identify ICT nodes that do not represent any valid solution. These pruning techniques are based on examining small groups of agents (such as pairs or triples) and identifying internal conflicts that preclude the given ICT node from representing a valid solution. When such an ICT node is identified, there is no need to activate the low-level search and the high-level search can proceed to the next ICT node.
+
+\begin{figure}
+\centering
+\includegraphics[width = 6cm]{figs/gridMddsCropped.pdf}
+\caption{An example MAPF problem with 3 agents and MDDs. (a) the grid describing the problems. Mice are the agents, and each agent's goal is the location of the cheese with the same index; (b) An MDD representing the paths of agent $a_2$ that reach the goal with cost 3; (c) An MDD representing the paths of agent $a_1$ that reach the goal with cost 1 (extended with dashed nodes to align with the size of the MDD of agent $a_2$); (d) The joint MDD of $a_1$ and $a_2$. The red node represents a conflict and will be removed from the MDD together with paths passing through it (dashed lines). }
+\label{fig:mapf}
+\end{figure}
+%The ICTS algorithm~\cite{sharon2013increasing} consists of two levels. At the high-level, the search is performed on cost nodes that specify for each agent the cost of its paths to the goal that are considered in the current ICT node.
+% At the low-level, the algorithm performs a ``goal test'' on each expanded ICT node. This goal test searches for a feasible solution for a specific ICT node and returns true if there is a non-conflicting set of paths for all agents.
+%The search starts from an ICT node with costs corresponding to the shortest paths costs for each of the agents ignoring the other agents. Then, nodes are expanded in a breadth-first manner, where each layer includes nodes with a specific sum of costs. Every time a node is expanded, the low-level search performs a goal test on the ICT node, checking whether there is a non-conflicting set of paths for the agents with the required costs. If the goal test passes, the algorithm terminates. If it does not, new ICT nodes are generated -- where each child node increases the cost for one of the agents, resulting in a total cost great by 1 then its parent node.
+
+%For example, if the initial costs were 3,5 and 6 and a non-conflicting solution did not exist at these costs, three ICT child nodes will be generated, with  costs of ${4,5,6}$; ${3,6,6}$, and ${3,5,7}$. Because the ICT is searched in a breadth-first manner, an optimal solution is guaranteed (a node with a lower sum of costs will always be searched before nodes with higher sum of costs).
+
+%To efficiently solve ICT nodes (i.e., perform a goal test), the low-level search uses multi-value decision diagrams (MDDs)~\cite{srinivasan1990algorithms}. An MDD for a single agent and a given cost represents all possible paths from the starting location of the agent to its goal at the defined cost. Figure~\ref{fig:mapf}(b) shows the MDD for agent $a_2$ with $c=3$. This MDD represents all of the paths that $a_2$ can take from its location to its goal, at a cost of 3. Each level of the MDD includes all of the locations that $a_2$ might be at in a specific time step when traversing a path of cost 3 to the goal. An edge connects an MDD node with locations in the next level that can be arrived at from the current location. For example, at level 1, $a_2$ could be at either location $(1,2)$ or $(0,1)$. From $(1,2)$ it can move to either $(1,1)$ or $(2,2)$, while from $(0,1)$ it can only move to $(1,1)$ in order to reach the goal in cost 3. Note that if there are $V$ vertices in the graph representing the grid, there can be at most $V \cdot C$ nodes in each level of an MDD of cost $C$. As explained above, we align the MDDs to have the same cost by replicating the goal node in the next time steps, as show for agent $a_1$ in Figure~\ref{fig:mapf}(c) (dashed nodes and edges were added to match the length of $a_2$'s MDD).

@@ -1,0 +1,17 @@
+\vspace{-0.3cm}
+\section{Conclusion}
+%\note{Ofra}{this is still from my course project. needs to be rewritten and shortened. Think main points are: we show how to an auction bla bla. it's good because it is flexible and applicable to self-interested. future work: computational complexity analysis; exploring ways to improve WD; possibly interpret ICTS and CBS as combinatorial auctions and compare with existing mechanisms.}
+In this paper we shows how an iterative combinatorial auction mechanism can be used to find optimal solutions to MAPF. Several properties of the structure of MAPF problems raised challenges for implementing the auction mechanism, such as the large number of items and possible bundles. Using efficient representations of paths used in prior MAPF works, we were able to develop an auction-based MAPF solver. Preliminary results are encouraging, showing that the auction approach performs close to state-of-the-art existing MAPF algorithms and in some settings finding solutions in less time. Moreover, the auction-based MAPF solver enjoys the flexibility of auctions, supporting user-specific preference over routes as well as a self-interested setting, where agents are not cooperative and require a strategy proof mechanism to coordinate them. The auction-based MAPF provides all these naturally. 
+
+
+
+Bridging between auctions and MAPF opens the door for further integration of ideas. Insights and techniques from the auction literature can be adopted to the MAPF domain, for example using heuristics or approximate auction mechanisms. Similarly, techniques for reducing the complexity of MAPF problems might also be useful for auction mechanisms, and interpreting algorithms such as ICTS from an auction perspective might lead to novel auction mechanisms.
+
+
+
+
+
+%In addition to improving the auction mechanism for the MAPF problem, there are several additional interesting directions for future research. First, more investigations are needed to determine which MAPF algorithm is preferable based on the structure of the problem (e.g. number of agents, open vs. constrained grids etc.). Second, since the auction mechanism is a market-based mechanism in its essence, it can be used in self-interested multi-agent settings without modifications, assuming that agents will have real budgets. This relates to recent work on self-interested multi-agent pathfinding~\cite{bnaya2013multi}. In addition, making the connection between the auction mechanisms and multi-agent planning allows further integration of known results and algorithms from the auctions literature to the MAPF domain. For example, we can explore using approximate winner determination algorithms to tradeoff optimality with computation time.  Finally, it would be interesting to consider ICTS as a possible mechanism for combinatorial auctions, where at each round prices are increased for all agents, but the actual payments are determined according to the solution found. 
+
+  
+\label{sec:disc}

@@ -1,0 +1,32 @@
+
+
+\section{Introduction}
+\label{sec:intro}
+This paper defines a new multi-agent decision problem, the ``Single Agent in a Team Decision" ({\em SATD}) problem, which may be described informally as follows: An individual collaborating in a multi-agent team obtains new information, unanticipated at planning time.  This (single) agent has incomplete knowledge of others' plans.  It must decide whether to communicate this new information to its teammates, and if so, to whom, and at what time.  SATD differs from previously studied multi-agent communications problems in that it does not assume complete knowledge of other agents' plans or policies nor that all observations are knowable in advance.  It assumes instead that agents have some knowledge of each other's intentions and plans which can be used to reason about information sharing decisions.  
+
+%The SATD assumptions better model many multi-agent decision making settings, especially those in which groups include both people and computer agents. 
+SATD arises from the ways in which effective teamwork decomposes complex activities into constituent tasks and delegates responsibility for those tasks to team members with appropriate expertise and capabilities.  Human teammates typically make only general plans and allocate tasks at a high level of abstraction. They do not necessarily know each other's plans  nor consider together all contingencies of all possible plans for doing those tasks. Their cognitive load is lowered significantly as a result. 
+To make appropriate decisions about sharing information, they must reason  with only uncertain knowledge of their teammates' plans. Agents participating in mixed networks comprising  humans and computer agents or supporting people in team settings also must be capable of such reasoning.  The SATD problem can also arise in purely computer-agent teamwork settings. For example, in ad hoc teamwork~\cite{stone2010ad}, an agent joining an existing team only after planning time  lacks significant information about other agents' plans, but might still need to reason about which observations to share with teammates. 
+
+%The SATD assumptions better model many multi-agent decision making settings, especially those in which groups include both people and computer agents. SATD arises from the ways in which effective teamwork decomposes complex activities into constituent tasks and delegates responsibility for those tasks to team members with appropriate expertise and capabilities for carrying them out.  Human teammates typically make only general plans and allocate tasks at a high level of abstraction. They do not know the details of each other's plans for constituent tasks nor consider together all contingencies of all possible plans for doing those tasks. Their cognitive load is lowered significantly as a result. 
+%To make appropriate decisions about sharing information, they must however reason  with only partial, uncertain plans. Agents participating in mixed networks comprising  humans and computer agents or supporting people in team settings also need to be capable of reasoning with only partial, uncertain information about others' plans.  The SATD problem can also arise in purely computer-agent teamwork settings. For example, in ad hoc teamwork~\cite{stone2010ad}, an agent joining an existing team only after planning time would lack significant information about other agents' plans, but might still need to reason about which observations to share with its teammates. 
+
+
+We are investigating SATD in the context of developing computer agents to support care teams for children with complex conditions.  Agents able to support health-care teams by identifying what information to share, with whom and when have the potential to substantially improve health outcomes. Care teams for children with complex conditions typically involve many providers -- a primary care provider, specialists, therapists, and non-medical care givers. The care team defines a high-level care plan that describes the main care goals, but there is no centralized planning mechanism that generates a complete plan for the team or that can ensure coordination. Caregivers are unaware of their collaborators' complete plans, yet their individual plans often interact. Communicating relevant information among team members is crucial for care to be coordinated and effective, but doing so is costly and often insufficient in practice.
+
+To address SATD, the paper proposes a novel, integrated Belief-Desire-Intention (BDI) and decision-theoretic (DT) representation that
+builds on the strengths of each approach.  
+In particular, our approach integrates the Probabilistic Recipe Trees (PRT) representation of an agent's beliefs about another agent's plans~\cite{kamar2009incorporating} with a Markov Decision Process (MDP) to support a collaborating group in their execution of a plan. We call this integrated representation  MDP-PRT. 
+%In particular, our approach integrates the Probabilistic Recipe Trees (PRT) representation of an agent's beliefs about another agent's plans~\cite{kamar2009incorporating} with a Markov Decision Process (MDP). We call the resulting representation  MDP-PRT. 
+
+
+
+We evaluated an agent using MDP-PRT to solve the SATD problem in an abstract setting. Results show that it outperforms the inform algorithm proposed by Kamar et al.~\shortcite{kamar2009incorporating}. In addition, we compared the agent's performance with that of 
+Dec-POMDP policy that was informed about all possible observations.
+The MDP-PRT agent obtains results close to those obtained by this Dec-POMDP policy despite lacking a  coordinated policy that considers all possible observations.
+
+
+The paper makes three contributions. First, it formally defines  the SATD communication problem
+ and contrasts it with previously studied communication problems in multi-agent settings. Second, it proposes a new representation (MDP-PRT)  that enables agents to reason about and solve the SATD communication problem. Third, it demonstrates the usefulness of this representation and analyzes the effect of agents' uncertainties and of communication cost on the performance of a team.
+
+

@@ -1,0 +1,135 @@
+\section{Results}
+\label{sec:res}
+To evaluate the MDP-PRT agent we ran several types of experiments. 
+The first experiment compared the performance of the MDP-PRT agent with that of a PRT agent using the inform algorithm of Kamar et al.~\shortcite{kamar2009incorporating}. The algorithm decides whether to inform at the onset of the game by comparing the expected utility of the PRT representing OBS's initial beliefs with the expected utility of a revised PRT describing the belief about the plans if trap locations are shared ($\varphi_{comm}$). If the increase in communication cost is greater than the communication cost, the agent communicates. This approach is myopic as it does not consider the possibility of waiting to learn more about PAR's plans and possibly communicating at a later stage.
+
+ We used 6 different board configurations varying the trap distribution in different colors. We generated 6 board instances for each trap distribution and varied the communication cost between runs. We ran each combination of board instance and communication cost 10 times.  In all games, PAR  knew the trap distribution but not the actual trap locations; its moves were chosen randomly based on its expected utility (e.g. it chose between shortest paths weighing trap probability).  OBS  knew that PAR knew only the trap distribution. PAR randomly chose one of its shortest paths and moved accordingly. Once  OBS  communicated the trap locations, PAR randomly chose a shortest path that do not pass through any traps.
+
+
+
+Table~\ref{table:res} shows the average utility achieved by the agents in experiments with different communication costs. Results are averaged across all board instances and the 10 runs of each instance. The maximal utility that could be obtained in the game ranged between 100 and 125, depending on  PAR's chips and the goal location. Thus a communication cost of 10 is about 10\% of the maximal possible utility.  As expected, the MDP-PRT agent outperforms the PRT agent across all configurations and communication costs.  All reported differences are statistically significant ($P<0.01$).
+
+
+
+   \begin{table}[h]
+   \centering
+   \small
+   \resizebox{5cm}{!}{%
+   \begin{tabular}{|c|c|c|c|c|c|}
+    \hline
+  \textbf{Comm. Cost} & \textbf{5}  & \textbf{10} & \textbf{20} &  \textbf{30}\\ 
+   \hline
+   \hline
+  \textbf{PRT} & 67.67  & 65.17 & 60.17 & 55.17 \\ 
+   \hline
+  \textbf{MDP-PRT}   & \textbf{77} & \textbf{75.57} & \textbf{72.83} & \textbf{70.03 }\\ 
+   \hline   
+   \end{tabular}}
+   \caption{The average utility for each agent and communication cost, averaged over all board instances. }
+   \label{table:res}
+     \vspace{-0.2cm}
+   \end{table}
+   
+   
+   The MDP-PRT agent saves unnecessary communication and thus outperforms the PRT agent. To illustrate this difference, we consider the board configuration shown in Figure~\ref{fig:game}. In the first round of the game,  PAR   
+   is 2 squares away from the trap. When the PRT agent decides whether to communicate, it considers the distribution over possible paths that  PAR might choose. One of these paths goes through the trap; so there is some probability that  PAR will reach the trap location. The OBS (PRT) agent will decide to communicate if the difference between the expected utility of the updated PRT after informing and the expected utility of the PRT representing  PAR's plans without informing is higher than the communication cost. In contrast, the MDP-PRT agent would also take into account the possibility of informing at a later stage: Since PAR is two squares away from the trap, the MDP-PRT agent will choose not to inform at this turn, since if PAR would move right in the next turn, then it is unlikely it chose a plan that passes through a trap location. 
+
+
+   Figure~\ref{fig:util}(a)  shows the average utilities achieved by the agents in boards with probability of 0.15 for traps to appear on any board square; Figure~\ref{fig:util}(b) shows the average utilities in  boards with probability of 0.15 for traps to appear on any red or green square. (there are more traps on the board configurations in (a) than in (b)). 
+   As can be seen in the figure, the MDP-PRT agent outperformed the baseline PRT agent in both. 
+   The difference in utilities grows with communication cost. When communication cost increases, the MDP-PRT agent benefits more from avoiding unnecessary  communication. In the configuration shown in Figure~\ref{fig:util}(a) we also observe a higher decrease in utilities for the MDP-PRT agent. This is a result of the combination of boards that have more traps together with the high communication costs. 
+
+
+  
+  \begin{figure}[h]
+          \centering
+          \begin{subfigure}[b]{0.25\textwidth}
+                  \centering
+                  \includegraphics[width=4cm]{figures/fig2bCropped.pdf}
+                  \caption{All 0.15 configuration}
+                  \label{fig:all}
+          \end{subfigure}%
+%          \newline
+          ~ %add desired spacing between images, e. g. ~, \quad, \qquad etc.
+            %(or a blank line to force the subfigure onto a new line)
+          \begin{subfigure}[b]{0.25\textwidth}
+                  \centering
+                  \includegraphics[width=4cm]{figures/fig2aCropped.pdf}
+                  \caption{RG 0.15 configuration }
+                  \label{fig:r}
+          \end{subfigure}
+
+          \caption{Average utilities obtained by the agents: (a) boards with probability of 0.15 for traps to appear on any color; (b) boards with probability 0.15 for traps to appear on any red or green squares.}
+          \label{fig:util}
+            \vspace{-0.3cm}
+  \end{figure}
+  
+
+  
+  Reasoning about the future, however, has a cost in terms of computation time. The MDP-PRT agent needs to generate and solve the MDP for the given game configuration, which requires more computation than the one-shot decision made by the PRT agent at the onset of the game. On average, decision time was about two times slower when using the MDP-PRT agent (mean = 29.82 msec), as compared to the PRT agent's (mean = 13.71 msec). 
+
+  
+  \subsection{Comparison with Dec-POMDP}
+Key aspects of SATD are that agents cannot anticipate $a_1$ observing $o^*$ nor form a coordinated policy. This limits the possible utility achievable in SATD, as a coordinated policy that takes into account knowledge of possible observations during planning time can lead to better performance.
+  We illustrate this using the board instance shown in Figure~\ref{fig:game}. The MDP-PRT agent can delay its decision about communication to the second round, after observing the new location of PAR. If  PAR moves to (1,0), the agent might decide to communicate. 
+A Dec-POMDP with prior knowledge of the possible observations can do better. Had the agents known in advance that traps might appear only on the two red squares and that OBS will learn the true trap locations, they could have agreed on a communication policy, allowing  PAR to learn something about the trap locations even when  OBS does not communicate. For example, they could have agreed that OBS will communicate if the trap is in location $(1,2)$ but not if it is on $(2,0)$. Then, if OBS does not communicate, PAR learns that there is a trap on $(2,0)$.  
+
+
+To compute a policy for the setting in which agents \emph{anticipate} that OBS will learn about trap locations, we solve a Dec-POMDP that has information about the trap distributions, and knows that  OBS will learn the true locations of traps.  A state in the Dec-POMDP for this game includes the true location of the traps, the location of  PAR, its chips and its knowledge of the trap distribution. For example, if traps can appear only on red squares, a board configuration with two red squares such as the board shown in Figure~\ref{fig:game} will induce four possible initial worlds states: no traps on the board; 2 traps on the board, one on (2,0) and one on (1,2); a trap on (1,2) but not on (2,0); a trap on (2,0) but not on (1,0) (the real world state shown in the figure). These four initial states also describe the location of  PAR ($(0,0)$ in the example), its chips and its knowledge of the trap distribution. At the onset of the game,  OBS observes the true state of the world (i.e. the true trap locations). 
+  
+ Solving the Dec-POMDP results in an optimal joint policy that achieves the maximal utility. For  PAR, the policy specifies movement actions. For  OBS, the policy specifies whether or not to inform  PAR of the trap locations at each communication stage.  Note that the Dec-POMDP policy so it can  always perform at least as well as the MDP-PRT agent, as it has more knowledge about the world.
+. 
+   
+As a result of the computational complexity of the Dec-POMDP, we restricted the experiments to boards that had at most two possible trap locations.
+We varied the probability that a possible trap location  actually includes a trap, with values  $P_t = 0.2, 0.5, 0.8$, and generated 6 board configurations for each of these values. $P_t$  determines the probability distribution over world states. For example, in the board shown in Figure~\ref{fig:game}, the two red squares are possible trap locations. If $P_t = 0.2$, then the probability of the world state shown in Figure~\ref{fig:game}  is $P_t \cdot (1-P_t)=0.2 \cdot 0.8=0.16$ because (2,0) has a trap while (1,2) does not.
+ 
+ 
+   A Dec-POMDP policy maximizes the expected utility over all possible world states while MDP-PRT is run on a particular world state (e.g. a particular board with traps already determined). Thus, for each board configuration and trap distribution, we ran MDP-PRT on boards representing all possible world states and compute a weighted average of their utility based on the distribution over world states. For example, the board instance in Figure~\ref{fig:game} is one of four instances for a board configuration with possible traps on squares (2,0) and (1,2). The other three instances include a board with no traps, a board with a trap in (1,2) but not in (2,0) and a board with traps on both locations.   We ran the MDP-PRT agent on each of these boards to compare it with the Dec-POMDP policy.
+
+   
+   The first two rows in Table~\ref{tab:decCompare} show the utility obtained by the MDP-PRT agent and the expected utility of a joint policy generated by a Dec-POMDP.
+   These utilities are averaged over all 6 board configurations and trap probabilities. 
+   
+    
+    \begin{table}[h]
+    \vspace{-0.2cm}
+    \centering
+    \small
+     \resizebox{6.5cm}{!}{%
+    \begin{tabular}{c|c|c|c|c}
+    {} &5         & 10          & 25          & 50                      \\
+       \hline
+          \hline
+    Dec-POMDP & \bf{101.8} & \bf{101.46} & \bf{100.2} & \bf{98.13} \\
+       \hline
+    MDP-PRT (accurate)  & 100.52 & 99.08 & 94.38      & 87.5\\
+       \hline
+        MDP-PRT (inaccurate)  & 99.75 & 97.46 & 92.13      & 83.67\\
+           \hline
+    \end{tabular}}
+    \caption{The performance of MDP-PRT (with accurate and inaccurate beliefs) and an optimal Dec-POMDP approach.}
+     \label{tab:decCompare}
+       \vspace{-0.3cm}
+    \end{table}
+   
+
+  As expected, the Dec-POMDP always performs better as a result of its additional information at planning time. The difference is statistically significant ($P<0.01$).  
+  As can be seen in the table, increasing communication cost leads to larger differences between the Dec-POMDP and MDP-PRT utilities, a result of the additional communication required by the MDP-PRT agent. When communication cost is up to 10\% of the utility of reaching the goal (100 points), MDP-PRT compares well with the Dec-POMDP policy (less than 3\% difference). When communication cost rises to 25\% or 50\% of goal utility, the difference grows, but the average utility achieved by MDP-PRT is still within 15\% of the optimal utility. Increasing the trap probability decreases the utility obtained by both agents; it also increases the gap between MDP-PRT and the  Dec-POMDP because world states that include more traps and require more communication are more likely.
+
+ 
+ \subsection{Inaccurate Beliefs About Others' Plans}
+
+The MDP-PRT agent requires knowledge of the probability distributions over the plans of other agents and a way to update this distribution given new information. In practice, it is possible (and likely) that agents will estimate these probabilities inaccurately. To examine the possible effects of such inaccuracies on agents' performance, we ran additional experiments. In these experiments  OBS  knew a probability distribution over PAR's chips, but did not know the actual chips  PAR had. Specifically, it assumed a uniform distribution between 1 to 4 chips of each color.
+ Consequently, the initial PRT and updates to the PRT could be inaccurate in their assignment of probabilities to possible plans. 
+
+The last row of Table~\ref{tab:decCompare} shows the performance of the MDP-PRT agent using this inaccurate PRT estimation. As expected, inaccurate beliefs lead to a decrease in utility ($P<0.05$). In these settings, however, the average decrease in utility was small (less than 5\%). Figure~\ref{fig:inacc} shows the performance of  three different agents on a particular board configuration that included only one possible trap location with probability 0.5 of a trap  on that location. In this configuration, the Dec-POMDP never communicates and thus always obtains the maximal possible utility. Compared to the MDP-PRT with an accurate PRT representing PAR's possible plans, the inaccurate model communicated more often, resulting in lower utility. Its inaccurate probability estimation assigned higher probability to paths that pass through traps than their actual probability. In general, wrong estimation of the PRT can lead to communicating too much, or communicating too little. 
+
+
+	\begin{figure}
+	\centering
+	\includegraphics[width=4.3cm]{figures/fig3cropped.pdf}
+	%\caption{The utility achieved by the agents in board configurations with one possible trap location.}
+	\caption{Utility for board configurations with one possible trap.}
+	\label{fig:inacc}
+	    \vspace{-0.5cm}
+	\end{figure}

@@ -1,0 +1,36 @@
+\section{Comparison with ICTS}
+From the pathfinding perspective, the auction can be viewed as a three-level algorithm:
+\begin{itemize}
+\item  Level 1: A bidding iteration, represented by a tuple of agents' maximal bids $\langle m_1,...,m_k \rangle$
+\item  Level 2: Solving a bidding iteration $\langle m_1,...,m_k \rangle$
+\item Level 3: Solving a candidate provisional allocation
+\end{itemize}
+
+We note that level 2 is equivalent to spanning an ICT with costs $c_1<m_1,...,c_k<m_k$, however unlike ICTS these nodes also include ICT nodes with only a subset of the agents. Level 3 is equivalent to the low-level goal test in ICTS. 
+ICTS and $iBundle$ differ in that ICTS performs a breadth-first search on the ICT, where for each node it only needs to check whether there is a feasible solution that includes \emph{all} agents. This requires ICTS to solve all ICT nodes with $c<=c^*$, where $c^*$ is the cost of the optimal solution. In contrast, each round of the auction might examine several ICT nodes, including nodes with only subsets of the agents and chooses the allocation with the maximal revenue. This examination of subsets of agents allows the auction to ``skip'' some ICT nodes that ICTS would try to solve, but at the cost of solving additional allocations of subset of agents and the overhead of computing revenue and finding the winning allocation. 
+
+We note that ICTS can be viewed as a type of auction, where at each iteration the price is incremented by 1 to \emph{all} agents (i.e. an iteration corresponds to expanding all ICT nodes of a certain cost). Then, it is possible to implement a price adjustment process based on the solution. That is, although agents were told that the price had increased, based on the solution we could adjust their price to a possibly lower price based on the actual solution that was found. 
+
+Let $\delta_i = C^*_{i}-opt{i}$, where  $C^*_{i}$ denotes the cost of the path for agent $i$ in the optimal allocation and $opt_i$ denotes the cost of the optimal path for $i$ disregarding other agents. We define $\Delta = \sum\limits_{i=1}^k{delta_i}$. ICTS will need to expand $k^{\Delta}$ until the solution is found because it needs to reach an ICT node where the cost for each agent is exactly $C*_i = opt_i + \delta_i$, and it expands nodes using breadth-first search. This means it will not need to exapnd nodes with $C>\Delta$.
+
+$iBundle$ might need to exand deeper ICT nodes but it might not need to exand all ICT nodes at each level. We show that $iBundle$  will not expand ICT nodes with $C>\Delta \cdot k$. To show this we prove that if for every agent $i$, $m_i>=\sum\limits_{i=1}^k{\delta_j}$, then the bidding iteration will find a solution (i.e. the provisional allocation will include all agents and the auction will terminate).
+
+\begin{proof}
+Assume that:
+\begin{enumerate}
+\item For every $j$, $m_j>=\sum\limits_{j=1}^k{\delta_j}$
+\item The provisional allocation at the end of the round \emph{does not} include all agents
+\end{enumerate}
+It follows from (2) that $\exists i$ such that $i \notin PA$, where $PA$ is the set of agents in the provisional allocation.
+\\Since $i$ was not included in $PA$, we also have $revenue(PA)<=\sum\limits_{j \neq i}{m_j}$
+\\ We further know that there is a feasible candidate allocation $CA$ that includes all agents, with \\$revenue(CA)<=\sum\limits_{j=1}^k{m_j-\delta_j}$. 
+\\This is true because we know there is a feasible solution with paths at cost $c_j = opt_j+\delta_j$ (follows immediately from the definition of $\delta_j$).
+\\Because allocation PA was chosen over CA, we have:
+\\$revenue(PA)>revenue(CA)$
+\\$\sum\limits_{j=!i}{m_j}>\sum\limits_{j=1}^k{m_j}-\delta_j$
+\\$m_i-\sum\limits{j}{\delta_j} < 0$
+\\ $\sum\limits{j}{\delta_j}>m_i$
+\\This contradicts assumption (1). 
+\end{proof}
+
+\note{Ofra}{What else do we want to say? maybe have an example case study showing which ICT nodes each of the algorithms needed to solve?}
