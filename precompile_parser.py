@@ -3,7 +3,7 @@ import os
 import re
 from version import Page
 
-from bs4 import BeautifulSoup as BS
+import BeautifulSoup as BS
 
 #regexes precompiled for increased runtime
 
@@ -48,7 +48,7 @@ def cleanset(texts):
 
 def getstuff(xml_name, border1, border2):
     #open the xml file and find all tags with text
-    soup = BS(open(os.path.join(os.getcwd(), xml_name)), "lxml")
+    soup = BS.BeautifulSoup(open(os.path.join(os.getcwd(), xml_name)), "lxml")
 
     #text extraction
     pages = soup.find_all('text')
@@ -92,14 +92,81 @@ def getstuff(xml_name, border1, border2):
     page_history.create_paras()
     return page_history
 
+def getstuffOfra(directory_name, border1, border2):
+    #open the xml file and find all tags with text
+#    soup = BS.BeautifulSoup(open(os.path.join(os.getcwd(), xml_name)), "lxml")
+    page_history = Page('colWriting')
+    for a in os.walk("papers"):
+        for b in a[2]:    
+            filename = b 
+            values = b.split('_')
+            title = values[0]
+            revisionNum = values[1]
+            timestamp = values[2]
+            author = values[3]
+            fileToOpen=os.path.join(os.getcwd(), "papers", b)
+            with open (fileToOpen, "r") as myfile:
+                text=myfile.read()
+#                print data 
+            page_history.add_revision(text, '',timestamp, author)
+#    page_history.reduce_revisions()
+    page_history.create_paras()
+    return page_history
+            
+                
+            
+#
+#    #text extraction
+#    pages = soup.find_all('text')
+#    texts = [a.text for a in pages]
+#    texts1 = cleanset(texts[:border1])
+#    texts1.extend(cleanset(texts[border2:]))
+#
+#    #additional information
+#    revision = soup.find_all('revision')
+#    comments = []
+#    timestamps = []
+#    users = []
+#    for r in revision:
+#        timestamps.append(r.timestamp.text)
+#        if r.comment is not None:
+#            comments.append(r.comment.text)
+#        else:
+#            comments.append('')
+#        if r.contributor.username is not None:
+#            users.append(r.contributor.username.text)
+#        else:
+#            users.append('')
+#
+#    #strip out the not working parts
+#    comments1 = comments[:border1]
+#    comments1.extend(comments[border2:])
+#
+#    timestamps1 = timestamps[:border1]
+#    timestamps1.extend(timestamps[border2:])
+#
+#    users1 = users[:border1]
+#    users1.extend(users[border2:])
+#
+#    #get title of page
+#    title = soup.find('title').text
+#    #create history object
+#    page_history = Page(title)
+#    for i in range(len(texts1)):
+#        page_history.add_revision(texts1[i], comments1[i], timestamps1[i], users1[i])
+#    page_history.reduce_revisions()
+#    page_history.create_paras()
+#    return page_history
+
 
 if __name__ == "__main__":
-    xml_file = 'savant_syndrom.xml'
+    xml_file = 'colWriting.xml'
     #pickle_file = 'mona_lisa.pkl'
     pickle_file = xml_file[:-4]+ '.pkl'
 
 
     xml_name = os.path.join(os.getcwd(), "xmls", xml_file)
+    print xml_name
     pickle_name = os.path.join(os.getcwd(), "pickles", pickle_file)
 
     #in case the user made formatting errors, you need to exclude those revisions
@@ -109,7 +176,7 @@ if __name__ == "__main__":
 
 
     #extract from xml
-    xml_parse = getstuff(xml_name, border1, border2)
+    xml_parse = getstuffOfra('papers', border1, border2)
 
     #store as pickle file
     pkl_file = open(pickle_name, 'wb')

@@ -1,0 +1,298 @@
+Many documents (e.g., academic papers) are typically written by multiple
+collaborators. While many existing tools support such collaborative
+efforts (e.g., dropbox, google docs), these tools lack intelligent
+information sharing mechanisms. While capabilities such as ``track
+changes'' and ``diff'' visualize changes to authors, they do not
+distinguish between minor and major edits and do not consider the
+possible effects of edits on other parts of the document. Drawing
+collaborators' attention to specific edits and describing them remains
+the responsibility of authors. This paper presents our initial work
+towards the development of a collaborative system for supporting
+multi-author writing. We describe methods for tracking paragraphs,
+identifying significant edits and predicting parts of the paper that are
+likely to require changes as a result of previous edits. Preliminary
+evaluation of the proposed methods shows promising results.
+
+\section{Introduction}\label{introduction}
+
+Collaborative writing is a common activity for many people: scientists
+write papers and proposals together, lawyers draft contracts,
+legislators draft legislation. In recent years, collaborative writing of
+documents has become even more widespread with the support of frameworks
+that simplify distributed editing (e.g., google docs, dropbox). However,
+while document processors provide capabilities such as ``track
+changes'', ``diff'' and commenting, they lack intelligent information
+sharing mechanisms. They do not attempt to reason about the importance
+or relevance of changes to different authors and do not consider how
+edits might affect other parts of the document. Therefore, there is
+currently significant coordination overhead: authors need to frequently
+re-read the entire document or rely on communication from their
+co-authors in order to keep track with the current state of the document
+and ensure that their edits are mash with other edits.
+
+Because authors need to make sure their edits are coherent with the
+document as a whole, including sections written by others, they need to
+read the entire document frequently, or rely on updates from their
+co-authors. Even when authors communicate with each other frequently,
+they can get lost in the volume of edits from other collaborators or
+become overwhelmed with too much information.
+
+This paper presents our initial work towards the development of a
+collaborative system for assisting multi-author writing by drawing
+authors attention to edits that are important and relevant for them, and
+pointing out other parts of the document that are likely to require
+editing given changes they have just made.
+
+The paper describes methods for tracking paragraphs as they are revised,
+for identifying paragraphs that have been significantly changed, and for
+predicting which parts of the document are likely to change following a
+particular edit. Systems with such capabilities have potential to
+improve coherence and coordination while reducing authors' communication
+burden. An empirical evaluation of the approach on a corpus of Wikipedia
+articles shows promising initial results. Using these methods it is
+possible to track paragraph across revisions, identify significant
+changes, and predict the paragraphs that are likely to be edited
+following a significant edit of a particular paragraph.
+
+\subsection{Related Work}\label{related-work}
+
+Prior work has studied coordination in collaborative writing (e.g.,
+~\cite{neuwirth2001computer,kittur2007he}), as well as the social
+aspects that arise as a result of edits and comments made by
+collaborators~\cite{birnholtz2013write}, and has developed tools for
+supporting such collaboration (e.g., Quilt~\cite{fish1988quilt}). Most
+closely related to our work are methods and tools for supporting
+improved \emph{awareness} of collaborators about changes made to a
+document. These include flexible diffing for reporting significant
+changes~\cite{neuwirth1992flexible}, methods for categorization of edits
+and interfaces for presenting them to
+authors~\cite{fong2010did,papadopoulou2007structured,tam2006framework},
+methods for detecting and alerting authors about merge
+conflicts~\cite{hainsworth2006enabling}, and methods for detecting
+structure in text and help co-authors create coherent documents~
+\cite{de2007narrative}. Our approach differs from these prior works in
+that it leverages natural language processing and data mining methods to
+automatically detect significant edits and furthermore predict future
+edits, without requiring authors to specify explicitly what changes are
+of interest to them. These capabilities go beyond prior approaches for
+supporting change awareness in that they can support authors not only in
+finding the changes that have been made, but also in drawing their
+attention to parts of the document that are likely to require edits as a
+result of those changes.
+
+\section{Approach}\label{approach}
+
+This section describes methods for: (1) tracking paragraphs; (2)
+identifying significant changes to paragraphs, and (3) predicting future
+changes to the article. Capability (1) is required for both monitoring
+changes and predicting them. Capability (2) can help promote only the
+most important changes and decide whether to alert collaborating authors
+of a change. Capability (3) is required in order to draw authors'
+attention to other parts of the document that might require changes as a
+result of a recent edit. We describe our investigation of the
+lightweight use of NLP techniques and history tracking for providing
+these important capabilities
+
+\subsection{Tracking paragraphs}\label{tracking-paragraphs}
+
+tracking\textsubscript{v}is\textsubscript{p}aper.png
+
+As a document is being edited, paragraphs can be added, moved or
+deleted. To track paragraphs throughout document revisions, we developed
+a mapping algorithm that determines which paragraph in the new version
+corresponds to each of the paragraphs in the previous version (prior to
+editing). The algorithm compares paragraphs based on their Levenshtein
+distance, that is, the number of changed characters required to move
+from one paragraph to another, including additions, deletions, and
+substitutions. We use the Levenshtein edit ratio measure, which is
+defined as follows:
+\(Levenshtein Ratio(a,b) = 1-\frac{Levenshtein Distance(a,b)}{max(|a|,|b|)} \)
+
+A Levenshtein ratio between two paragraphs close to 1 indicates high
+similarity, while a ratio close to 0 indicates the opposite. For each
+revision of a document, the algorithm computes the Levenshtein ratio
+between each paragraph in the old version and each paragraph in the new
+version. Two paragraphs are mapped across the revision if they each have
+the highest Levenshtein ratio for the other. If a paragraph in the new
+version has no matching paragraphs in the old version (none of its
+ratios were above a threshold of 0.4), we label the paragraph as an
+addition. If a paragraph in the old version is not matched with any
+paragraphs in the next version, then we consider it a deletion.
+Figure~{[}fig:mapping{]} illustrates this algorithm: paragraphs 9, 10,
+and 12 of the old version were deleted, while the others found clear
+matches (e.g., paragraph 11 in the new version was mapped with paragraph
+9 in the old version).
+
+\subsection{Identifying Significant
+Changes}\label{identifying-significant-changes}
+
+We consider a significant change to be a noticeable change in the
+paragraph's topic and content. To detect such changes, we use a topic
+modeling approach. Specifically, we use cosine similarity between word
+vectors that represent the paragraphs, incorporating Latent Semantic
+Indexing~\cite{deerwester1990indexing} (LSI) which accounts for synonyms
+and does not penalize for typographical errors. If the cosine similarity
+between the new and old versions of a paragraph is below an empirically
+determined threshold of 0.8, we consider the edit to be significant.
+
+We chose a topic modeling approach for this task because, in contrast
+with the Levenshtein ratio approach used for mapping paragraphs, topic
+modeling considers the content of the text. To illustrate, if two of the
+paragraph's sentences switch places, the Levenshtein ratio would
+decrease despite no meaningful change in content. On the other hand,
+changing a couple of key words will slightly lower the Levenshtein
+ratio, but could drastically affect the content.
+
+\subsection{Predicting Future Edits}\label{predicting-future-edits}
+
+We hypothesized that a paragraph that underwent a significant change
+would cause inconsistencies in related paragraphs, prompting edits.
+Therefore, we developed methods for predicting which paragraphs are
+likely to change in future revisions as a result of significant edits in
+a particular paragraph of the document.
+
+We considered three possible types of inter-paragraph relationships: (1)
+\emph{proximity}, that is neighboring paragraphs; (2) \emph{topic
+similarity}, i.e., paragraphs with high cosine similarity, and (3)
+\emph{edit histories}, i.e., paragraphs that tended to be edited
+together in previous revisions. For (3), we labeled pairs as related if
+they changed or remained unchanged together over half the time in
+previous revisions.
+
+\section{Empirical Evaluation}\label{empirical-evaluation}
+
+This section describes a preliminary evaluation of the proposed methods
+for tracking paragraphs, detecting significant edits and predicting
+future changes using a corpus of Wikipedia articles and their revision
+histories.
+
+\subsection{Data}\label{data}
+
+We used the complete revision histories of 41 different articles chosen
+from a diverse set of topics, ranging from famous people and places to
+mathematical algorithms to novels. We removed Wikipedia-specific tags
+that indicate formatting and other irrelevant data, and eliminated
+versions of the articles under 150 characters, as they did not contain
+enough information. To focus on revisions that contain some substantial
+changes, the versions with simple typo fixes (Levenshtein distance
+\(< 15\) ) were eliminated.
+
+\subsection{Findings}\label{findings}
+
+This section describes the findings from our empirical evaluation. Our
+main focus was the prediction of future edits, but we also conducted a
+manual evaluation of paragraph mapping and significant change detection,
+which formed the basis for edit prediction.
+
+\subsubsection{Detecting Significant
+Changes}\label{detecting-significant-changes}
+
+Figure~{[}fig:lsi{]} shows the distribution of LSI similarity between
+paragraphs in consecutive versions. As can be seen, most edits are
+minor, and with the threshold ratio of 0.8 we labeled about 15\% of the
+edits as significant.
+
+\includegraphics{figs/lsiRatios1.pdf}\\
+
+We manually evaluated a random sample of a more than 100 such edits to
+determine 1) that paragraphs were correctly mapped and 2) that this
+method successfully classifies edits. We provide an example of a
+significant edit in Figure~{[}fig:pars{]}. While these paragraphs are
+clearly the same, the edit is significant because it contributes content
+and changes the tone of the paragraph.
+
+\includegraphics{figs/parTopicChange1.pdf}\\
+
+\subsubsection{Predicting Future Edits}\label{predicting-future-edits-1}
+
+We generally found that a significant edit to a paragraph often triggers
+edits in other paragraphs in the next revisions. This is shown in
+Figure~{[}fig:edits{]}, where each line represents a paragraph that is
+edited significantly at time 0 after not being significantly edited in
+recent versions, further adjustments (as represented by downward spikes)
+are triggered in the near future. We evaluated the three inter-paragraph
+relationships (proximity, topic similarity and edit history) to
+determine which paragraphs are more likely to require further editing
+after a significant change occurs in the article.
+
+\includegraphics{figs/parChangesNew.pdf}\\
+
+We looked at two measures that indicate that a paragraph may need
+attention. The first checked whether the related paragraphs underwent at
+least one significant change within the next ten versions. The second
+measure tests whether the paragraphs continue to be edited together ten
+versions after the significant change, that is whether they change
+together (or remain unchanged together) more than half the time. This is
+a stronger indication than just undergoing at least one significant
+change.
+
+On average, 1.6 pairs of paragraphs related by edit history were found
+per revision of the text. A pair related by topic similarity was only
+found once every ten versions. Proximity relationships always exist in
+each version, as most paragraphs have two neighbors.
+
+With respect to the first measure, the relationships of edit history and
+topic similarity{[}a{]}{[}b{]} are much more predictive of a future
+significant edit than proximity, as shown in
+Table~{[}table:futureEdits{]}. They are also significantly more
+predictive than random sample controls. For controls, we compare with
+the original paragraph as well as a random sample of any ten consecutive
+versions within Wikipedia article histories.
+
+{\textbar{}p{5cm}\textbar{}p{5cm}\textbar{}} \textbf{Relationship} \&
+\textbf{Percentage of times there exists at least one significant
+change}\\Edit History \& 81\%\\
+
+Proximity \& 24\%\\
+
+Paragraph with original change \& 40\%\\
+
+Random sampled paragraph \& 15\%\\
+
+With respect to the second measure, we correctly predicted 63\% of pairs
+related by topic and 71\% of pairs related by edit history. (Proximity
+was not evaluated for this measure, as it did almost no better than the
+random control for the first, less strict, measure.) Further, we
+obtained a recall of 80\% for these correct predictions; thus, only 20\%
+of the paragraphs that should have been labeled as related (based on
+information ten versions in the future) were missed.
+
+\begin{longtable}[c]{@{}llll@{}}
+\caption{Ratio of correctly-predicted future linking by
+relationship.{}}\tabularnewline
+\toprule
+\textbf{Relationship} & \textbf{Ratio} & &\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+\textbf{Relationship} & \textbf{Ratio} & &\tabularnewline
+\midrule
+\endhead
+Topic Similarity & 63\% & &\tabularnewline
+Edit Similarity & 71\% & &\tabularnewline
+\bottomrule
+\end{longtable}
+
+\section{Discussion and Future Work}\label{discussion-and-future-work}
+
+Our long-term goal is to build a collaborative system that will improve
+the collaborative writing process. The methods we developed for tracking
+paragraphs throughout document revisions, detecting significant edit and
+for predicting future edits, provide the basis for such a system. These
+capabilities can inform decisions about alerting authors to specific
+changes and places in the document that are likely to require revisions.
+
+In future work, we plan to incorporate information about author identity
+to design personalized alerts for authors depending on their context of
+editing and history of revisions. For example, the paragraph tracking
+algorithm makes it possible to create a list of authors who have
+contributed to a specific paragraph, which can be used to determine who
+to alert when significant edits occur. We also plan to develop
+additional algorithms for summarizing changes and to investigate the use
+of algorithms that measure text coherence (e.g.,Textiling
+\cite{hearst1994multi}) for alerting authors to portions of the text
+that appear to lack coherence. Finally, we plan to explore alternative
+ways of presenting to authors the information chosen by the algorithms
+as important for them to consider. For example, the system might
+highlight changes that it deems relevant or provide a list of them with
+links to the places they appear in the text.

@@ -1,0 +1,309 @@
+. See: \url{http://www.acm.org/about/class/1998/} for help using the ACM
+Classification system.
+
+\section{Introduction}\label{introduction}
+
+Maybe one paragraph (previous years talk about motivation in similar
+work in intro and have one-two paragraphs in a background/related work
+section) about how previous work tried to come up with frameworks to
+support writers and tried to investigate the writers problems. They
+describe the motivation and the need for such a system: * Tracking
+Changes in Collaborative Writing: Edits, Visibility and Group
+Maintenance Old examples: * Quilt: A collaborative tool for cooperative
+writing - 1988 * User-centred iterative design of collaborative software
+-1993 * what do co-authors use? * They try to find relevant changes: *
+Flexible Diff-ing in a collaborative writing system * What did they do?
+Deriving High-Level edit histories in Wikis
+
+newer examples also try to classify changes: * How a Structured Document
+Model Can Support Awareness in Collaborative Authoring * A framework for
+asynchronous change awareness in collaborative documents and workspaces
+* some try to find conflicts (different definition of conflict though):
+* Enabling truly collaborative writing on a computer * and some try to
+find an explicit structur in texts: * A narrative-based collaborative
+writing tool for constructing coherent technical documents * trying to
+predict: * WikiChanges - Exposing Wikipedia Revision Activity
+
+When authors collaborate to write a paper, they need to communicate
+constantly to ensure that they are all on the same page. Because the
+authors need to make sure that their edits are coherent with the rest of
+the paper, including sections written by others, they need to read the
+entire paper frequently, or rely on updates communicated by their
+coauthors. Even with constant communication, authors can get lost in the
+volume of edits from other collaborators. Therefore, an assistive system
+with a summary of the significant changes contributed by other authors
+would be helpful. We hypothesize that when an author makes a significant
+edit to a paragraph, it eventually triggers a series of adjustments in
+related paragraphs. Before these adjustments occur, semantic conflicts
+might occur between authors. We wanted a collaborative writing system to
+also predict when and where these conflicts may occur, in order to alert
+even more specifically.
+
+The system is composed of the following three components: (1) tracking
+paragraphs; (2) identifying significant changes to paragraphs, and (3)
+predicting future changes to the article. Tracking paragraphs through
+paper revisions is a core capability required for monitoring changes and
+predicting them. The identification of significant content changes is
+important for a system to understand how important different changes are
+and whether collaborating authors should be notified. Predicting future
+changes enables the system to not only report to authors about changes
+that have already been made, but also draw their attention to other
+parts of the document that might require changes as a result of the
+changes made.
+
+INSERT THIS SOMEHOW IN MOTIVATION {[}A significant edit demanded changes
+in related paragraphs eighty percent of the time{]}, but in
+collaborative writing, these resulting edits do not occur
+instantaneously. Instead of waiting for other authors to discover the
+inconsistency caused by one author's edit, we want an assistive system
+that can alert relevant authors about paragraphs that might need an
+additional look as a result of an edit.
+
+\section{Approach}\label{approach}
+
+\subsection{Data}\label{data}
+
+The described research is based on the revision history from a wide
+variety of Wikipedia articles that undergo intense editing processes.
+Wikipedia is a unique source because it presents extensive data for
+collaborative writing. The findings use the complete revision revision
+history of 41 different articles chosen from a diverse set of topics,
+from famous people and places to mathematical algorithms to novels. The
+revision histories were downloaded as raw xml data. We removed
+Wikipedia-specific tags that indicate formatting and other irrelevant
+data, and eliminated versions of the articles under 150 characters, as
+they did not contain enough information. To focus only on revisions with
+consequential changes, the versions with simple typo fixes{[}1{]} were
+eliminated as well. This resulted in a total of 17,199 versions across
+the 41 articles, with an average length of 25.71 paragraphs. Wikipedia
+data affords results applicable to other collaborative writing spaces,
+because although the average article has over 400 contributing authors,
+most of these authors make a one-time change. In fact, on average, 15
+authors make 80\% of the edits to an article. This enables the
+consideration of interactions between authors, which is crucial for
+learning about collaborative behavior.
+
+\subsection{Tracking paragraphs}\label{tracking-paragraphs}
+
+We developed a novel mapping algorithm that uses the Levenshtein edit
+ratio measure, which is defined in equation 1.
+
+This method differed from previous attempts in the sense that it tracks
+paragraphs as a whole instead of just the longest common subsequence as
+used in {[}a b c{]} or on a sentence level as used in {[}a b c{]}.
+
+A Levenshtein ratio close to one between two paragraphs indicates a high
+similarity between them, while a ratio close to zero indicates the
+opposite. For each revision, we computed the Levenshtein ratio between
+each paragraph in the old version and each paragraph in the new version.
+Two paragraphs are mapped across the revision if they each had the
+highest Levenshtein ratio for the other. If a paragraph in the new
+version had no ``matches'', meaning that none of its ratios were above a
+threshold of 0.4, this paragraph was new. If a paragraph in the old
+version had no ``matches'', then it was deleted in the revision. The
+image below demonstrates this algorithm: paragraphs 9, 10 and 12 of the
+old version were deleted, while the others found clear matches.
+
+\subsection{Detect Significant
+Changes}\label{detect-significant-changes}
+
+We define a significant change as a noticeable change in the paragraph's
+topic and content. For this calculation, the Levenshtein ratio does not
+provide the right kind of information. For example, if two of the
+paragraph's sentences switch places, the Levenshtein ratio would
+decrease despite no meaningful change in content. On the other hand,
+changing a couple key words will slightly lower the Levenshtein ratio,
+but could drastically affect the content.
+
+As shown in figure 1, which shows the distribution of the differences
+between a paragraph's Levenshtein ratios and LSI ratios, the Levenshtein
+and LSI ratios demonstrate very different statistics. {[}INSERT
+FIGURE{]}
+
+Therefore, we use a topic modeling approach, which is a better fit for
+assessing changes in content. Latent Semantic Indexing is a form of
+topic modeling that calculates the topic similarity between two texts.
+Its strengths lie in accounting for synonyms and not penalizing for
+typographical errors. The process begins by composing a corpus for each
+Wikipedia article from all of the documents (paragraphs of the versions
+of the article). It analyzes tokens (a specific instance of a word),
+eliminating those that only occur once, as well as stopword tokens, such
+as `the' or `and'. It then creates a TF-IDF matrix, which assigns a
+weight to every token in each document, which indicates the importance
+of that token for this document. This weight increases proportionally to
+the frequency of the word in the document, but accounts for the
+frequency of the word in the corpus, such that the frequent occurrence
+of a usually uncommon word is given a larger weight to signify this
+importance.
+
+The latent semantic indexing method then reduces the dimensions of the
+matrix, clustering synonyms, words with similar topics, and words that
+usually occur together. When comparing two paragraphs, the method
+computes the cosine similarity between each paragraph's row vector.
+Paragraphs that have similar topics will have a large cosine similarity
+value.
+
+By calculating the topic similarity between two concurrent versions of
+an edited paragraph, the system can detect whether a significant change
+has occurred. If the cosine similarity between the two paragraphs was
+below an empirically determined threshold of 0.8, we label the edit as
+significant.
+
+\subsection{Predicting Future
+Conflicts}\label{predicting-future-conflicts}
+
+We hypothesized that a paragraph that underwent a significant change
+would cause inconsistencies in related paragraphs, prompting edits.
+Therefore, in order to predict future conflicts, an assistive system
+needs to detect significant changes and then determine consequently
+which paragraphs were most likely to change.
+
+We looked at three possible types of inter-paragraph relationships.
+Paragraphs could be related by physical proximity: perhaps the
+neighboring paragraphs would require adjustments, as they are likely
+part of the same section. Paragraphs could also be related by topic. For
+example, in an academic paper, the discussion section and the conclusion
+should present similar themes. If one changes, the other may need to be
+edited to reflect this change. For each significant change, we used the
+existing LSI Topic Model to determine which paragraphs discussed similar
+topics. Lastly, paragraphs could be related because of similar edit
+histories. For each significant change, we evaluated the edit history of
+this paragraph with every other paragraph in the article. We labeled
+pairs as related if they changed or remained unchanged together over
+half the time. With a higher threshold, the sample size decreases, but
+with a lower threshold, the results become less predictive of a
+significant change prompting further edits. This threshold strikes a
+balance between these two outcomes.
+
+To evaluate these both of these suspected relationships, we looked at
+the related paragraphs' edit patterns in the ten versions following the
+significant change. If the related paragraphs changed together over half
+the time, the paragraphs with this relationship proved to be related in
+the future, verifying the relationship at the time of the significant
+change.
+
+\section{Findings}\label{findings}
+
+\subsection{Tracking Paragraphs}\label{tracking-paragraphs-1}
+
+To evaluate the method for tracking paragraphs through consecutive
+versions of a paper, we calculated the number of versions from the
+paragraphs' inception to its demise. On average, paragraphs lasted 83
+article revisions.
+
+\subsection{Detecting Significant
+Changes}\label{detecting-significant-changes}
+
+Using the LSI Topic Similarity model and a threshold ratio of 0.8, we
+labeled about 15
+
+We evaluated a random sample of these edits to determine that this
+method successfully classifies edits. We provide an example of a
+significant edit below. While these paragraphs are clearly the same, the
+edit is significant because it contributes content and changes the tone
+of the paragraph.
+
+OLD: After complaints arose during the renovation in the late 1980s of
+the early residential colleges, a swing dormitory was built in 1998 to
+facilitate housing students during the massive overhaul of buildings
+that had seen only intermediate improvements in plumbing, heating,
+electrical and network wiring, and general maintenance over their
+35-to-80-year existence. The new Residence Hall is not a residential
+college, but houses students from other colleges during renovations. It
+is commonly called ``Swing Space'' by the students; it's official name
+``Boyd Hall'' is unused. ---------------------------------------------
+NEW: In 1990, Yale launched a series of massive overhauls to the older
+residential buildings, whose decades of existence had seen only routine
+maintenance and incremental improvements to plumbing, heating, and
+electrical and network wiring. Calhoun College was the first to see
+renovation. Various unwieldy schemes were used to house displaced
+students during the yearlong projects, but complaints finally moved Yale
+to build a new residence hall between the gym and the power plant. It is
+commonly called ``Swing Space'' by the students; its official name
+``Boyd Hall'' is unused.
+
+\subsection{Predicting Future
+Conflicts}\label{predicting-future-conflicts-1}
+
+We evaluated various inter-paragraph relationships to determine which
+paragraphs are more likely to require editing after a significant change
+occurs in the article. As seen in figure {[}X{]}, when a paragraph is
+edited for the first time in a while, further adjustments are triggered
+in the near future.
+
+Caption: After a significant change at version 0, consequent edits are
+more frequent.
+
+We looked at two measures that indicate that a paragraph may need
+attention. First, the related paragraphs experience at least one
+significant change within the next ten versions, indicating that a
+semantic discrepancy was introduced and required fixing. Second, and
+more importantly, the related paragraphs relationship was correctly
+predicted; that is, they are still related ten versions after the
+significant change, meaning that they change together (or remain
+unchanged together) more than half the time. This is a stronger
+indication than just undergoing at least one significant change.
+
+With respect to the first measure, the relationships of edit history and
+topic similarity are much more predictive than physical proximity, as
+shown in table {[}X{]}. They are also significantly more predictive than
+random sample controls. For controls, we compare with the original
+paragraph as well as a random sample of any ten consecutive versions
+within Wikipedia article histories.
+
+Relationship or Control Percentage of times that paragraph experienced
+at least one significant change Edit History 81 Topic Similarity .
+Physical Proximity 24 Paragraph with original significant change 40
+Random Sample of Paragraphs 15
+
+More importantly, with respect to the second measure, we correctly
+predicted 63
+
+Relationship Number Found Successfully Linked Ratio of Successfully
+Linked Topic Similarity 1,869 1,203 63 Editing History 27,722 19,685 71
+
+Lastly, to ensure independence from specific articles, we calculated the
+correlation between our statistics across all of our Wikipedia articles.
+The correlation coefficient was 0.99 for all numbers.
+
+\section{Discussion}\label{discussion}
+
+As demonstrated by the long average lifespan of a paragraph, our
+algorithm for tracking paragraphs throughout versions of an article is
+capable of following paragraphs through complex edits. This provides the
+basis for detecting significant changes and anticipating future semantic
+conflicts. Our edit evaluation method successfully detects the most
+significant changes using the LSI Topic Similarity model. Based on these
+significant changes, we anticipate possible semantic conflicts in linked
+paragraphs. After a significant change, paragraphs related to the edited
+paragraph were indeed more likely to be edited in response a couple
+versions later. Paragraphs linked by similar edit histories were most
+likely to need editing, with paragraphs linked by topic similarity not
+far behind.
+
+In the future, we can build an assistive system that uses our methods to
+improve the collaborative writing environment. The paragraph tracking
+algorithm makes it possible to create a list of authors who have
+contributed to a specific paragraph, which is crucial for determining
+who to alert when significant edits occur. By labeling edits as
+significant, the system can save authors time, since they will no longer
+need to discern which of their peers' edits actually matter. Then, when
+a significant edit occurs, the system can alert authors to related
+paragraphs that will likely need adjusting, allowing authors to fix
+semantic conflicts immediately, instead of discovering them later.
+
+We imagine a couple other helpful components for an assistive system
+that our methods could provide the foundation for. Using text summary
+algorithms, the system could provide a succinct textual summary of
+significant changes already detected. The system could also \ldots{}.
+
+\section{Conclusion}\label{conclusion}
+
+Both of these measures of relatedness are successful in determining
+whether a paragraph will change together in the future. Consequently, we
+assert that if significant edit occurs, related paragraphs should also
+be edited. A proposed assistive system will alert the relevant authors
+of related paragraphs if this resulting edit does not occur. By
+detecting relationships between paragraphs in a multi-authored paper,
+our system can predict and alert appropriate authors if a significant
+change has the potential to create a semantic conflict within the paper.

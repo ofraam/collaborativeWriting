@@ -7,7 +7,7 @@ Created on Jan 25, 2015
 import version 
 #from version import Version
 #from version import Page
-#import networkx as nx
+import networkx as nx
 import sys 
 import cPickle, copy, custom_texttiling as ct, difflib, gensim, jellyfish, matplotlib.pyplot as plt, matplotlib.cm as cm
 import Levenshtein, nltk, nltk.data, numpy as np, os, re
@@ -323,12 +323,56 @@ def generate_mapping_for_revision(v1,v2):
     return (generate_mapping(m_f,m_b),generate_mapping_old_new(m_f,m_b))  
 
 #parsing dropbox files
+
+'''
+-----------------------------------------------------------------------------
+MIPs reasoning functions start
+-----------------------------------------------------------------------------
+'''
+def DegreeOfInterestMIPs(mip, user, obj, alpha=0.3, beta=0.7):
+    #compute apriori importance of node obj (considers effective conductance)
+    current_flow_betweeness = nx.current_flow_betweenness_centrality(mip, True, 'weight');
+    api_obj = current_flow_betweeness[obj]  #node centrality
+#    print 'obj'
+#    print obj
+#    print 'api_obj'
+#    print api_obj
+    #compute proximity between user node and object node using Cycle-Free-Edge-Conductance from Koren et al. 2007
+    cfec_user_obj = CFEC(user,obj,mip)
+#    print 'cfec_user_obj'
+#    print cfec_user_obj
+    return alpha*api_obj+beta*cfec_user_obj
+        
+'''
+computes Cycle-Free-Edge-Conductance from Koren et al. 2007
+for each simple path, we compute the path probability (based on weights) 
+'''
+def CFEC(s,t,mip):
+    R = nx.all_simple_paths(mip, s, t, cutoff=8)
+    proximity = 0.0
+    for r in R:
+        PathWeight = mip.degree(r[0])*(PathProb(r,mip))  #check whether the degree makes a difference, or is it the same for all paths??
+        proximity = proximity + PathWeight
+    return proximity
+    
+        
+def PathProb(path, mip):
+    prob = 1.0
+    for i in range(len(path)-1):
+        prob = prob*(float(mip[path[i]][path[i+1]]['weight'])/mip.degree(path[i]))
+    return prob
+
+'''
+-----------------------------------------------------------------------------
+MIPs reasoning functions end
+-----------------------------------------------------------------------------
+'''
  
 
 if __name__ == '__main__':
     print 'test'
     #load necessary data
-    pickle_file_name = 'italy.pkl'
+    pickle_file_name = 'Absolute_pitch.pkl'
 #    pickle_file_name = 'Octave.pkl'
     current_pickle = get_pickle(pickle_file_name)
     print current_pickle
@@ -337,12 +381,12 @@ if __name__ == '__main__':
     print current_paras[0][0].text
     current_paratexts = [[a.text.encode('utf-8') for a in b] for b in current_paras]
     revision = current_pickle.revisions
-    print current_paratexts[0][1]
-    print current_paratexts[1][1]
+    print len(current_paratexts[0])
+
     mip = Mip(revision[0])
     mip.initializeMIP()
     print len(revision)
-    for i in range(0,40):
+    for i in range(0,10):
 #        print i
         mip.updateMIP(revision[i])
 
@@ -375,8 +419,11 @@ if __name__ == '__main__':
         else:
             new_labels[node]=node
 #            print 'par'
-        
-
+    
+    
+    
+    
+    print DegreeOfInterestMIPs(mip.mip, 3, 7)
     nx.draw_networkx_nodes(mip.mip,pos,nodelist=userNodes,node_size=300,node_color='red')
     nx.draw_networkx_nodes(mip.mip,pos,nodelist=parNodes,node_size=300,node_color='blue')
     nx.draw_networkx_nodes(mip.mip,pos,nodelist=parDeletedNodes, node_size=300,node_color='black')
@@ -385,6 +432,6 @@ if __name__ == '__main__':
     #    G=nx.dodecahedral_graph()
 #    nx.draw(mip.mip)
     plt.draw()
-    plt.savefig('ego_graph.png')
+#    plt.savefig('ego_graph50.png')
     plt.show()
     

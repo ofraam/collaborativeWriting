@@ -13,13 +13,15 @@ class Version():
     def __init__(self, text, comment, date, author=''):
         self.text = text
         #self.comment = comment
-        self.date = datetime.datetime.strptime(date[:-1], "%Y-%m-%dT%H:%M:%S")
+#        self.date = datetime.datetime.strptime(date[:-1], "%Y-%m-%dT%H:%M:%S") #wiki
+        self.date = datetime.datetime.strptime(date[:-1], "%Y%m%dT%H%M%S%f") #gdoc
         self.author = author
         self.paragraphs = []
 
 
     def create_paras(self):
-        version = self.text.split("\n")
+#        version = self.text.split("\n") #wiki
+        version = self.text.split("\n\n") #gdoc
         indices = range(len(version))
         indices.reverse()
         for paraindex in indices:
