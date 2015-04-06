@@ -27,151 +27,67 @@ import matplotlib.pyplot as plt
 stop = stopwords.words('english')
 
 class Session:
-    def __init__(self, user, revision, time):
+    def __init__(self, user, time):
         self.actions = []
         self.user = user 
         self.time = time
         
+        
+    def addAction(self, action):
+        self.actions.append(action)
+        
+        
 class Action:
-    def __init__(self, user, actType, desc, weightInc):
+    def __init__(self, user, ao, actType, desc, weightInc):
         self.user = user
-        self.actType = actType
+        self.ao = ao
+        self.actType = actType #view, edit, add, delete
         self.desc = desc
         self.weightInc = weightInc
         
         
 
 class Mip:
-    def __init__(self, firstVersion):
+    def __init__(self, ao_inc = 1, decay = 0.2):
         self.mip = nx.Graph()
-        self.pars = []
+        self.lastID = 0
+        self.log = [] #log holds all the session data
+        self.objects = {}
         self.users = {}
         self.nodeIdsToUsers = {}
-        self.latestVersion = 0
-        self.lastID = 0
-        self.decay = 0.01
-        self.sigIncrement = 1
-        self.minIncrement = 0.1
-        self.currentVersion = firstVersion 
-        
-
-    def initializeMIP(self):
-        self.pars.append({})
-        userId = self.addUser(self.currentVersion.author)
-#        print userId
-        index = 0
-        for par in self.currentVersion.paragraphs:
-            parId = self.addPars(None, index)
-#            print parId
-            self.updateEdge(userId, parId,'u-p', self.sigIncrement)
-            index=index+1
-            
-        for i in range(0,len(self.currentVersion.paragraphs)):
-            for j in range(i+1,len(self.currentVersion.paragraphs)):
-                if i!=j:
-                    self.updateEdge(self.pars[self.latestVersion-1][i], self.pars[self.latestVersion][j],'p-p', self.sigIncrement)
-                    
-        
-#        print self.mip.nodes(True)
-        
-        
+        self.nodeIdsToObjects = {}
+        self.objectsInc = ao_inc
+        self.decay = decay     
+       
                 
-    def updateMIP(self, newVersion):
-        self.pars.append({})
-        self.latestVersion=self.latestVersion+1
-        #clear updated edges
+    def updateMIP(self, session):
+        #initialize 'updated' attribute of all edges to false
         for edge in self.mip.edges_iter(data=True):
             edge[2]['updated']=0
             
-        #get user
-        userId = self.addUser(newVersion.author)
-            
-        #TODO: code for adding new pars and users, and updating weights
-#        print len(newVersion.paragraphs)
-        (new_old_mappings,old_new_mappings) = generate_mapping_for_revision(self.currentVersion,newVersion)
-        mappings=new_old_mappings
-#        print mappings
-#        print self.currentVersion.paragraphs[5].text
-#        print newVersion.paragraphs[4].text
+        self.log.append(session) #append session to log
+        user = session.user
+        if (user not in self.users):
+            self.addUser(user)
+        user_node = self.users[user]
+        #update MIP based on all actions
+        for act in session.actions:
+            ao = act.ao
+            if (ao not in self.objects):
+                self.addObject(ao)
+            ao_node = self.objects[ao]
+            self.updateEdge(user_node, ao_node, 'u-ao', act.weightInc)
+        
+        for i in range(len(session.actions)):
+            ao_node1 = self.objects[session.actions[i].ao]
+            for j in range(i+1, len(session.actions)):
+                ao_node2 = self.objects[session.actions[j].ao]
+            if (ao_node1!=ao_node2):
+                self.updateEdge(ao_node1, ao_node2, 'ao-ao', self.objectsInc)
 
-        #check for significant changes, additions and deletions; add to MIP
-        old_partext = [a.text.encode('utf-8') for a in self.currentVersion.paragraphs]
-        new_partext = [a.text.encode('utf-8') for a in newVersion.paragraphs]
-        sigChangePars=[]
-        smallChangePars=[]
-        addedPars=[]
-        deletedPars=[] #note this is from *previous* revision
-
-        for i in range(0,len(newVersion.paragraphs)):
-#            print i
-            if i in mappings: #node in MIP already exists, just update
-#                print mappings[i]
-                prevParIndex=mappings[i]
-                self.addPars(prevParIndex, i) # adding to MIP
-                #check for sig change
-                sim = cosine_sim(old_partext[prevParIndex],new_partext[i])#compute topic similarity (tfidf)
-                if sim<0.75:
-                    sigChangePars.append(self.pars[self.latestVersion][i]) #significant change in topic similarity
-                elif sim!=1:
-                    smallChangePars.append(self.pars[self.latestVersion][i]) #small change
-            else:
-                self.addPars(None, i) #new node will be added to MIP
-                addedPars.append(self.pars[self.latestVersion][i])
+        #TODO: think about adding decay here!!
         
-#        print 'old_new_mappings'
-#        print old_new_mappings
-#        print 'length'
-#        print len(self.currentVersion.paragraphs)
-        for i in range(0,len(self.currentVersion.paragraphs)):
-            if old_new_mappings[i] is None:
-                deletedPars.append(self.pars[self.latestVersion-1][i]) 
-                self.mip.node[self.pars[self.latestVersion-1][i]]['deleted']=1
-                
-         
-        #update user-paragraph edges weights for all relevant paragraphs        
-        for par in deletedPars:
-            self.updateEdge(userId, par, 'u-p', self.sigIncrement)
-        for par in addedPars:
-            self.updateEdge(userId, par, 'u-p', self.sigIncrement)
-        for par in sigChangePars:
-            self.updateEdge(userId, par, 'u-p', self.sigIncrement)
-        for par in smallChangePars:
-            self.updateEdge(userId, par, 'u-p', self.minIncrement)
-            
-        #update paragraph-paragraph edges weights
-        bigChanges = addedPars+deletedPars+sigChangePars
-        for i in range(0,len(bigChanges)):
-            for j in range(i+1,len(bigChanges)):
-                self.updateEdge(bigChanges[i], bigChanges[j], 'p-p', self.sigIncrement)
-            for k in range(0,len(smallChangePars)):
-                self.updateEdge(bigChanges[i], smallChangePars[k], 'p-p', self.minIncrement)
-                
-#        print 'added'
-#        print addedPars
-#        print 'deleted'
-#        print deletedPars
-#        print 'sigChanges'
-#        print sigChangePars
-#        print 'smallChange'
-#        print smallChangePars
-                    
-#        print self.mip.nodes(True)
-        
-     
-        
-        #decay weights
-#        for edge in self.mip.edges_iter(data=True):
-#            if edge[2]['updated']==0:
-#                if edge[2]['type']=='p-p':
-#                    edge[2]['weight']=max(0,edge[2]['weight']-self.decay)
-#                elif (edge[2]['type']=='u-p') & ((userId==edge[0]) | (userId==edge[0])):
-#                    edge[2]['weight']=max(0,edge[2]['weight']-self.decay)
-#                else:
-#                    print 'not decaying'
-                    
-            
-            
-        self.currentVersion=newVersion
+        self.currentSession=session
 #        print'updating'
         
     def addUser(self,user_name):
@@ -186,27 +102,21 @@ class Mip:
             self.nodeIdsToUsers[self.lastID]=user_name
         return self.users[user_name]
             
-    def addPars(self,parPrevIndex,parNewIndex):
-        if (parPrevIndex is not None):
-            nodeId=self.pars[self.latestVersion-1][parPrevIndex]
-            self.pars[self.latestVersion][parNewIndex]=nodeId
-            self.mip.node[nodeId][self.latestVersion]=parNewIndex
-#            print 'existing node'
-#            print self.mip.node[nodeId]
+    
+    def addObject(self, object_id):
+        if (object_id in self.objects):
+            return self.objects[object_id]
         else:
             self.lastID=self.lastID+1
-            self.pars[self.latestVersion][parNewIndex] = self.lastID
+            self.objects[object_id] = self.lastID
             attr = {}
-            attr['type']='par'
-            attr['deleted']=0
-            attr[self.latestVersion]=parNewIndex
+            attr['type']='object'
             self.mip.add_node(self.lastID, attr)
-            
-#            print 'new node'
-#            print self.mip.node[self.lastID]
-        return self.pars[self.latestVersion][parNewIndex]
-            
-    def updateEdge(self,i1,i2,type,increment = 1):
+            self.nodeIdsToObjects[self.lastID]=object_id
+        return self.users[object_id]
+        
+           
+    def updateEdge(self,i1,i2,edge_type,increment = 1):
         if self.mip.has_edge(i1, i2):
             self.mip[i1][i2]['weight']=self.mip[i1][i2]['weight']+increment
         else:
@@ -215,16 +125,72 @@ class Mip:
             attr['weight']=increment
             self.mip.add_edge(i1, i2, attr)
         self.mip[i1][i2]['updated']=1
+    '''
+    -----------------------------------------------------------------------------
+    MIPs reasoning functions start
+    -----------------------------------------------------------------------------
+    '''
+    def DegreeOfInterestMIPs(self, user, obj, alpha=0.3, beta=0.7):
+        #compute apriori importance of node obj (considers effective conductance)
+        current_flow_betweeness = nx.current_flow_betweenness_centrality(True, 'weight');
+        api_obj = current_flow_betweeness[obj]  #node centrality
+    #    print 'obj'
+    #    print obj
+    #    print 'api_obj'
+    #    print api_obj
+        #compute proximity between user node and object node using Cycle-Free-Edge-Conductance from Koren et al. 2007
+        cfec_user_obj = self.CFEC(user,obj)
+    #    print 'cfec_user_obj'
+    #    print cfec_user_obj
+        return alpha*api_obj+beta*cfec_user_obj
+            
+    '''
+    computes Cycle-Free-Edge-Conductance from Koren et al. 2007
+    for each simple path, we compute the path probability (based on weights) 
+    '''
+    def CFEC(self,s,t):
+        R = nx.all_simple_paths(self.mip, s, t, cutoff=8)
+        proximity = 0.0
+        for r in R:
+            PathWeight = self.mip.degree(r[0])*(self.PathProb(r))  #check whether the degree makes a difference, or is it the same for all paths??
+            proximity = proximity + PathWeight
+        return proximity
+        
+            
+    def PathProb(self, path):
+        prob = 1.0
+        for i in range(len(path)-1):
+            prob = prob*(float(mip[path[i]][path[i+1]]['weight'])/self.mip.degree(path[i]))
+        return prob
+    
+    
+    def rankChangesForUser(self,user,time):
+        notificationsList = []
+        checkedObjects = []
+        for i in range(time, len(self.log)):
+            session = self.log[i]
+            for act in session.actions:
+                if (act.ao not in checkedObjects):
+                    #TODO: possibly add check whether the action is notifiable
+                    doi = self.DegreeOfInterestMIPs(self.users[user], self.objects[act.ao])
+                    #put in appropriate place in list based on doi
+                    if (len(notificationsList==0)):
+                        notificationsList.append(act.ao, doi)
+                    else:
+                        j = 0
+                        while (doi<notificationsList[j][1]):
+                            j = j+1
+                        notificationsList.insert(j, act.ao)
+                        
+        return notificationsList
+                    
+                
+    '''
+    -----------------------------------------------------------------------------
+    MIPs reasoning functions end
+    -----------------------------------------------------------------------------
+    '''
 
-
-#class article:
-#    def __init__(self, file_name):
-#        self.current_pickle = wikiparser.get_pickle(file_name)
-#        self.current_texts = self.current_pickle.get_all_text()
-#        self.current_paras = self.current_pickle.get_all_paragraphs()
-#        self.current_paratexts = [[a.text.encode('utf-8') for a in b] for b in self.current_paras]
-#        self.current_names = self.current_pickle.get_all_authors()
-#        
 
 def get_pickle(pickle_file, folder="pickles"):
     pickle_name = os.path.join(os.getcwd(), folder, pickle_file)
