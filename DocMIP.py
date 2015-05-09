@@ -86,7 +86,7 @@ class Mip:
         #get user
         userId = self.addUser(newVersion.author)
             
-        #TODO: code for adding new pars and users, and updating weights
+      
 #        print len(newVersion.paragraphs)
         (new_old_mappings,old_new_mappings) = generate_mapping_for_revision(self.currentVersion,newVersion)
         mappings=new_old_mappings
@@ -385,8 +385,8 @@ MIPs reasoning functions end
 if __name__ == '__main__':
     print 'test'
     #load necessary data
-    pickle_file_name = 'Absolute_pitch.pkl'
-#    pickle_file_name = 'Octave.pkl'
+#    pickle_file_name = 'Absolute_pitch.pkl'
+    pickle_file_name = 'Yale_University.pkl'
     current_pickle = get_pickle(pickle_file_name)
     print current_pickle
     current_texts = current_pickle.get_all_text()
@@ -399,8 +399,8 @@ if __name__ == '__main__':
     mip = Mip(revision[0])
     mip.initializeMIP()
     print len(revision)
-    for i in range(0,10):
-#        print i
+    for i in range(0,len(revision)-1):
+        print revision[i].author
         mip.updateMIP(revision[i])
 
     edgewidth=[]
@@ -436,12 +436,14 @@ if __name__ == '__main__':
     
     
     
-    print DegreeOfInterestMIPs(mip.mip, 3, 7)
+#    print DegreeOfInterestMIPs(mip.mip, 3, 7)
     nx.draw_networkx_nodes(mip.mip,pos,nodelist=userNodes,node_size=300,node_color='red')
     nx.draw_networkx_nodes(mip.mip,pos,nodelist=parNodes,node_size=300,node_color='blue')
     nx.draw_networkx_nodes(mip.mip,pos,nodelist=parDeletedNodes, node_size=300,node_color='black')
     nx.draw_networkx_edges(mip.mip,pos,edgelist=mip.mip.edges(),width=edgewidth)
     nx.draw_networkx_labels(mip.mip,pos,new_labels)
+    print 'clustering'
+    print(nx.average_clustering(mip.mip, weight = "weight"))
     #    G=nx.dodecahedral_graph()
 #    nx.draw(mip.mip)
     plt.draw()

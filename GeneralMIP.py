@@ -77,6 +77,9 @@ class Mip:
                 self.addObject(ao)
             ao_node = self.objects[ao]
             self.updateEdge(user_node, ao_node, 'u-ao', act.weightInc)
+            #label deleted objects as deleted
+            if act.actType == 'delete':
+                self.mip.node[self.objects[act.ao]]['deleted'] = 1
         
         for i in range(len(session.actions)):
             ao_node1 = self.objects[session.actions[i].ao]
@@ -85,6 +88,8 @@ class Mip:
             if (ao_node1!=ao_node2):
                 self.updateEdge(ao_node1, ao_node2, 'ao-ao', self.objectsInc)
 
+        
+        
         #TODO: think about adding decay here!!
         
         self.currentSession=session
@@ -113,7 +118,7 @@ class Mip:
             attr['type']='object'
             self.mip.add_node(self.lastID, attr)
             self.nodeIdsToObjects[self.lastID]=object_id
-        return self.users[object_id]
+        return self.objects[object_id]
         
            
     def updateEdge(self,i1,i2,edge_type,increment = 1):
@@ -183,13 +188,57 @@ class Mip:
                         notificationsList.insert(j, act.ao)
                         
         return notificationsList
-                    
+    
+    def rankChangesGivenUserFocus(self,user,focus_obj, time):
+        notificationsList = []
+        checkedObjects = []
+        for i in range(time, len(self.log)):
+            session = self.log[i]
+            for act in session.actions:
+                if (act.ao not in checkedObjects):
+                    #TODO: possibly add check whether the action is notifiable
+                    doi = self.DegreeOfInterestMIPs(self.objects[focus_obj], self.objects[act.ao])
+                    #put in appropriate place in list based on doi
+                    if (len(notificationsList==0)):
+                        notificationsList.append(act.ao, doi)
+                    else:
+                        j = 0
+                        while (doi<notificationsList[j][1]):
+                            j = j+1
+                        notificationsList.insert(j, act.ao)
+                        
+        return notificationsList
+
+#    def rankChangeImplications(self,target_obj, time):
+#        notificationsList = []
+#        checkedObjects = []
+#        for i in range(time, len(self.log)):
+#            session = self.log[i]
+#            for act in session.actions:
+#                if (act.ao not in checkedObjects):
+#                    #TODO: possibly add check whether the action is notifiable
+#                    doi = self.DegreeOfInterestMIPs(self.objects[target_obj], self.objects[act.ao])
+#                    #put in appropriate place in list based on doi
+#                    if (len(notificationsList==0)):
+#                        notificationsList.append(act.ao, doi)
+#                    else:
+#                        j = 0
+#                        while (doi<notificationsList[j][1]):
+#                            j = j+1
+#                        notificationsList.insert(j, act.ao)
+#                        
+#        return notificationsList                    
                 
     '''
     -----------------------------------------------------------------------------
     MIPs reasoning functions end
     -----------------------------------------------------------------------------
     '''
+'''
+-------------------------------------------------------
+Writing domain functions
+-------------------------------------------------------
+'''
 
 
 def get_pickle(pickle_file, folder="pickles"):
