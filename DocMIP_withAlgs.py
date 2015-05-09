@@ -178,9 +178,9 @@ class Mip:
         #update current version and log with new session
         self.currentVersion=newVersion
         self.log.append(session)
-        print 'session'
-        print len(session.actions)
-        print session
+#        print 'session'
+#        print len(session.actions)
+#        print session
 #        print'updating'
         
     def addUser(self,user_name):
@@ -232,7 +232,7 @@ class Mip:
     '''
     def DegreeOfInterestMIPs(self, user, obj, alpha=0.3, beta=0.7):
         #compute apriori importance of node obj (considers effective conductance)
-        current_flow_betweeness = nx.current_flow_betweenness_centrality(True, 'weight');
+        current_flow_betweeness = nx.current_flow_betweenness_centrality(self.mip,True, 'weight');
         api_obj = current_flow_betweeness[obj]  #node centrality
     #    print 'obj'
     #    print obj
@@ -249,7 +249,7 @@ class Mip:
     for each simple path, we compute the path probability (based on weights) 
     '''
     def CFEC(self,s,t):
-        R = nx.all_simple_paths(self.mip, s, t, cutoff=8)
+        R = nx.all_simple_paths(self.mip, s, t, cutoff=4)
         proximity = 0.0
         for r in R:
             PathWeight = self.mip.degree(r[0])*(self.PathProb(r))  #check whether the degree makes a difference, or is it the same for all paths??
@@ -260,7 +260,7 @@ class Mip:
     def PathProb(self, path):
         prob = 1.0
         for i in range(len(path)-1):
-            prob = prob*(float(mip[path[i]][path[i+1]]['weight'])/self.mip.degree(path[i]))
+            prob = prob*(float(self.mip[path[i]][path[i+1]]['weight'])/self.mip.degree(path[i]))
         return prob
     
     
@@ -270,17 +270,38 @@ class Mip:
         for i in range(time, len(self.log)):
             session = self.log[i]
             for act in session.actions:
+                print "looking at ao = "+str(act.ao)
                 if (act.ao not in checkedObjects): #currently not giving more weight to the fact that an object was changed multiple times. 
                     #TODO: possibly add check whether the action is notifiable
                     doi = self.DegreeOfInterestMIPs(self.users[user], act.ao)
                     #put in appropriate place in list based on doi
-                    if (len(notificationsList==0)):
-                        notificationsList.append(act.ao, doi)
+                    if len(notificationsList)==0:
+                        toAdd = []
+                        toAdd.append(act.ao)
+                        toAdd.append(doi)
+                        notificationsList.append(toAdd)
                     else:
                         j = 0
-                        while (doi<notificationsList[j][1]):
-                            j = j+1
-                        notificationsList.insert(j, act.ao)
+                        print 'ao ='+str(act.ao)
+                        print 'doi = '+str(doi)
+                        print 'list'
+                        print notificationsList
+                        while ((doi<notificationsList[j][1])):
+                            if j<len(notificationsList)-1:
+                                j = j+1
+                                print 'here'
+                            else:
+                                j=j+1
+                                break
+                        toAdd = []
+                        toAdd.append(act.ao)
+                        toAdd.append(doi)   
+                        print "j = "+str(j)
+                        print "list length = " + str(len(notificationsList))                     
+                        if (j<len(notificationsList)):
+                            notificationsList.insert(j, toAdd)
+                        else:
+                            notificationsList.append(toAdd)
                     checkedObjects.append(act.ao)
                         
         return notificationsList
@@ -471,9 +492,13 @@ if __name__ == '__main__':
     mip = Mip(revision[0])
     mip.initializeMIP()
     print len(revision)
-    for i in range(0,15):
-        print revision[i].author
+    for i in range(0,68):
+#        print revision[i].author
         mip.updateMIP(revision[i])
+        
+        
+    rankedChanges = mip.rankChangesForUser("Jsc07302", 58)
+    print rankedChanges
 
     edgewidth=[]
     for (u,v,d) in mip.mip.edges(data=True):
