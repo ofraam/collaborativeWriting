@@ -19,7 +19,7 @@ from matplotlib import rcParams
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
-
+import math
 
 
 
@@ -142,7 +142,7 @@ class Mip:
             if old_new_mappings[i] is None:
                 deletedPars.append(self.pars[self.latestVersion-1][i]) 
                 self.mip.node[self.pars[self.latestVersion-1][i]]['deleted']=1
-                session.actions.append(Action(session.user, self.pars[self.latestVersion][i], 'deleted',new_partext[i], self.sigIncrement))
+                session.actions.append(Action(session.user, self.pars[self.latestVersion-1][i], 'deleted',"", self.sigIncrement))
                 
          
         #update user-paragraph edges weights for all relevant paragraphs        
@@ -165,12 +165,12 @@ class Mip:
   
         
         #decay weights
-#        for edge in self.mip.edges_iter(data=True):
-#            if edge[2]['updated']==0:
-#                if edge[2]['type']=='p-p':
-#                    edge[2]['weight']=max(0,edge[2]['weight']-self.decay)
-#                elif (edge[2]['type']=='u-p') & ((userId==edge[0]) | (userId==edge[0])):
-#                    edge[2]['weight']=max(0,edge[2]['weight']-self.decay)
+        for edge in self.mip.edges_iter(data=True):
+            if edge[2]['updated']==0:
+                if edge[2]['type']=='p-p':
+                    edge[2]['weight']=max(0,edge[2]['weight']-self.decay)
+                elif (edge[2]['type']=='u-p') & ((userId==edge[0]) | (userId==edge[0])):
+                    edge[2]['weight']=max(0,edge[2]['weight']-self.decay)
 #                else:
 #                    print 'not decaying'
                     
@@ -180,7 +180,7 @@ class Mip:
         self.log.append(session)
 #        print 'session'
 #        print len(session.actions)
-#        print session
+#        print "session user = "+session.user
 #        print'updating'
         
     def addUser(self,user_name):
@@ -230,30 +230,57 @@ class Mip:
     MIPs reasoning functions start
     -----------------------------------------------------------------------------
     '''
-    def DegreeOfInterestMIPs(self, user, obj, alpha=0.3, beta=0.7):
+    def DegreeOfInterestMIPs(self, user, obj, current_flow_betweeness, alpha=0.3, beta=0.7):
         #compute apriori importance of node obj (considers effective conductance)
-        current_flow_betweeness = nx.current_flow_betweenness_centrality(self.mip,True, 'weight');
+#        current_flow_betweeness = nx.current_flow_betweenness_centrality(self.mip,True, 'weight');
         api_obj = current_flow_betweeness[obj]  #node centrality
     #    print 'obj'
     #    print obj
     #    print 'api_obj'
     #    print api_obj
         #compute proximity between user node and object node using Cycle-Free-Edge-Conductance from Koren et al. 2007
-        cfec_user_obj = self.CFEC(user,obj)
+        
+        
+#        proximity = self.CFEC(user,obj) #cfec proximity
+        
+        proximity = self.adamicAdarProximity(user,obj) #Adamic/Adar proximity        
+        
+        
+#        print 'api = '+str(api_obj)
+#        print 'proximity = '+str(proximity)
     #    print 'cfec_user_obj'
     #    print cfec_user_obj
-        return alpha*api_obj+beta*cfec_user_obj #TODO: check that scales work out for centrality and proximity, otherwise need some normalization
+        return alpha*api_obj+beta*proximity #TODO: check that scales work out for centrality and proximity, otherwise need some normalization
+
+
+    '''
+    computes Adamic/Adar proximity between nodes, adjusted to consider edge weights
+    here's adamic/adar implementation in networkx. Modifying to consider edge weights            
+    def predict(u, v):
+        return sum(1 / math.log(G.degree(w))
+                   for w in nx.common_neighbors(G, u, v))
+    '''
+
+
+    def adamicAdarProximity(self, s, t):
+        proximity = 0.0
+        for node in nx.common_neighbors(self.mip, s, t):
+            weights = self.mip[s][node]['weight'] + self.mip[t][node]['weight'] #the weight of the path connecting s and t through the current node
+            proximity = proximity + (weights*(1/math.log(self.mip.degree(node, weight = 'weight')))) #gives more weight to "rare" shared neighbors
             
+        return proximity    
     '''
     computes Cycle-Free-Edge-Conductance from Koren et al. 2007
     for each simple path, we compute the path probability (based on weights) 
     '''
     def CFEC(self,s,t):
-        R = nx.all_simple_paths(self.mip, s, t, cutoff=4)
+        R = nx.all_simple_paths(self.mip, s, t, cutoff=3)
         proximity = 0.0
         for r in R:
             PathWeight = self.mip.degree(r[0])*(self.PathProb(r))  #check whether the degree makes a difference, or is it the same for all paths??
             proximity = proximity + PathWeight
+            
+            
         return proximity
         
             
@@ -261,48 +288,59 @@ class Mip:
         prob = 1.0
         for i in range(len(path)-1):
             prob = prob*(float(self.mip[path[i]][path[i+1]]['weight'])/self.mip.degree(path[i]))
+#        print 'prob' + str(prob)
         return prob
     
     
-    def rankChangesForUser(self,user,time):
+    def rankChangesForUser(self,user,time, onlySig = True):
+        print '----computing betweeness centrality for all nodes----'
+        current_flow_betweeness = nx.current_flow_betweenness_centrality(self.mip,True, 'weight');
+        print '----finished centrality computation-----'
         notificationsList = []
-        checkedObjects = []
+        checkedObjects = {}
         for i in range(time, len(self.log)):
+            print "time = "+str(time)
             session = self.log[i]
             for act in session.actions:
-                print "looking at ao = "+str(act.ao)
-                if (act.ao not in checkedObjects): #currently not giving more weight to the fact that an object was changed multiple times. 
-                    #TODO: possibly add check whether the action is notifiable
-                    doi = self.DegreeOfInterestMIPs(self.users[user], act.ao)
+#                print "user = "+act.user
+#                print "looking at ao = "+str(act.ao)
+                if ((act.actType != 'smallEdit') | (onlySig == False)):
+                    if (act.ao not in checkedObjects): #currently not giving more weight to the fact that an object was changed multiple times. --> removed because if there are both big and small changes etc...
+                        #TODO: possibly add check whether the action is notifiable
+                        doi = self.DegreeOfInterestMIPs(self.users[user], act.ao,current_flow_betweeness, alpha = 0.3, beta = 0.7)
+                        checkedObjects[act.ao] = doi
+                    else:
+                        "not computing!"
+                        doi = checkedObjects[act.ao] #already computed doi, don't recompute!
                     #put in appropriate place in list based on doi
                     if len(notificationsList)==0:
                         toAdd = []
-                        toAdd.append(act.ao)
+                        toAdd.append(act)
                         toAdd.append(doi)
                         notificationsList.append(toAdd)
                     else:
                         j = 0
-                        print 'ao ='+str(act.ao)
-                        print 'doi = '+str(doi)
-                        print 'list'
-                        print notificationsList
+#                        print 'ao ='+str(act.ao)
+#                        print 'doi = '+str(doi)
+#                        print 'list'
+#                        print notificationsList
                         while ((doi<notificationsList[j][1])):
                             if j<len(notificationsList)-1:
                                 j = j+1
-                                print 'here'
                             else:
                                 j=j+1
                                 break
                         toAdd = []
-                        toAdd.append(act.ao)
+                        toAdd.append(act)
                         toAdd.append(doi)   
-                        print "j = "+str(j)
-                        print "list length = " + str(len(notificationsList))                     
+#                        print "j = "+str(j)
+#                        print "list length = " + str(len(notificationsList))                     
                         if (j<len(notificationsList)):
                             notificationsList.insert(j, toAdd)
                         else:
                             notificationsList.append(toAdd)
-                    checkedObjects.append(act.ao)
+                        
+                    
                         
         return notificationsList
     
@@ -492,14 +530,15 @@ if __name__ == '__main__':
     mip = Mip(revision[0])
     mip.initializeMIP()
     print len(revision)
-    for i in range(0,68):
+    for i in range(0,389):
 #        print revision[i].author
         mip.updateMIP(revision[i])
         
-        
-    rankedChanges = mip.rankChangesForUser("Jsc07302", 58)
-    print rankedChanges
-
+    print '---------mip created----------'  
+    rankedChanges = mip.rankChangesForUser("Nunh-huh", 344, onlySig = False)
+    for change in rankedChanges:
+        print str(change[0])
+        print str(change[1])
     edgewidth=[]
     for (u,v,d) in mip.mip.edges(data=True):
         edgewidth.append(d['weight'])
