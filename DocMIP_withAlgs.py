@@ -390,6 +390,11 @@ class Mip:
     -----------------------------------------------------------------------------
     '''
 
+'''
+-----------------------------------------------------------------------------
+Writing funcs
+----------------------------------------------------------------------------
+'''
 #class article:
 #    def __init__(self, file_name):
 #        self.current_pickle = wikiparser.get_pickle(file_name)
@@ -510,8 +515,46 @@ def generate_mapping_for_revision(v1,v2):
 
 #parsing dropbox files
 
+'''
+-----------------------------------------------------------------------------
+Writing funcs end
+----------------------------------------------------------------------------
+'''
 
- 
+'''
+-----------------------------------------------------------------------------
+eval funcs
+----------------------------------------------------------------------------
+'''
+def evaluateChangesForAuthors(articleRevisions):
+    for i in range(2,len(articleRevisions.revisions)):
+        cur_author = articleRevisions.revisions[i].author
+        
+        
+    
+    return
+
+def generateMIPpicklesForArticles(articleRevisions, articleName):
+    mip = Mip(articleRevisions.revisions[0])
+    mip.initializeMIP()
+    for i in range(1,len(articleRevisions.revisions)):
+        mip.updateMIP(revision[i])
+        pickle_file_name = articleName + "_"+str(i)
+        mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
+        pkl_file = open(mip_file, 'wb')
+        print "writing file"
+        cPickle.dump(mip, pkl_file)
+        pkl_file.close()
+        
+
+        
+    
+    
+'''
+-----------------------------------------------------------------------------
+eval funcs end
+----------------------------------------------------------------------------
+'''
 
 if __name__ == '__main__':
     print 'test'
