@@ -20,8 +20,9 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
 import math
-
-
+from django.contrib.admin.views.main import ChangeList
+import random
+from nltk import metrics
 
 
 stop = stopwords.words('english')
@@ -230,7 +231,7 @@ class Mip:
     MIPs reasoning functions start
     -----------------------------------------------------------------------------
     '''
-    def DegreeOfInterestMIPs(self, user, obj, current_flow_betweeness, alpha=0.3, beta=0.7):
+    def DegreeOfInterestMIPs(self, user, obj, current_flow_betweeness, alpha=0.3, beta=0.7, similarity = "adamic"):
         #compute apriori importance of node obj (considers effective conductance)
 #        current_flow_betweeness = nx.current_flow_betweenness_centrality(self.mip,True, 'weight');
         api_obj = current_flow_betweeness[obj]  #node centrality
@@ -240,16 +241,12 @@ class Mip:
     #    print api_obj
         #compute proximity between user node and object node using Cycle-Free-Edge-Conductance from Koren et al. 2007
         
+        if similarity == "adamic":
+            proximity = self.adamicAdarProximity(user,obj) #Adamic/Adar proximity
+        else:
+            proximity = self.CFEC(user,obj) #cfec proximity
         
-#        proximity = self.CFEC(user,obj) #cfec proximity
-        
-        proximity = self.adamicAdarProximity(user,obj) #Adamic/Adar proximity        
-        
-        
-#        print 'api = '+str(api_obj)
-#        print 'proximity = '+str(proximity)
-    #    print 'cfec_user_obj'
-    #    print cfec_user_obj
+  
         return alpha*api_obj+beta*proximity #TODO: check that scales work out for centrality and proximity, otherwise need some normalization
 
 
@@ -292,7 +289,7 @@ class Mip:
         return prob
     
     
-    def rankChangesForUser(self,user,time, onlySig = True):
+    def rankChangesForUser(self,user,time, onlySig = True, alpha = 0.3, beta = 0.7, similarity = "adamic"):
         print '----computing betweeness centrality for all nodes----'
         current_flow_betweeness = nx.current_flow_betweenness_centrality(self.mip,True, 'weight');
         print '----finished centrality computation-----'
@@ -307,7 +304,7 @@ class Mip:
                 if ((act.actType != 'smallEdit') | (onlySig == False)):
                     if (act.ao not in checkedObjects): #currently not giving more weight to the fact that an object was changed multiple times. --> removed because if there are both big and small changes etc...
                         #TODO: possibly add check whether the action is notifiable
-                        doi = self.DegreeOfInterestMIPs(self.users[user], act.ao,current_flow_betweeness, alpha = 0.3, beta = 0.7)
+                        doi = self.DegreeOfInterestMIPs(self.users[user], act.ao,current_flow_betweeness, alpha, beta, similarity)
                         checkedObjects[act.ao] = doi
                     else:
                         "not computing!"
@@ -526,14 +523,103 @@ Writing funcs end
 eval funcs
 ----------------------------------------------------------------------------
 '''
-def evaluateChangesForAuthors(articleRevisions):
+def evaluateChangesForAuthors(articleRevisions, articleName):
+    last_author_revs = {}
     for i in range(2,len(articleRevisions.revisions)):
         cur_author = articleRevisions.revisions[i].author
+        if ((cur_author in last_author_revs) & (cur_author!="")) : #check that there was a previous revision for this author (otherwise can't compute DOI, though could do just api, maybe add later), and that the author is not anonymous (have no info)
+            if last_author_revs[cur_author]<i-1: #if the author wrote the previous revision, nothing to do.
+                j = 1;
+                while articleRevisions.revisions[i+j].author==cur_author:
+                    j = j+1
+                
+                mip = readMIPfromFile(articleName,i)
+                rankings = {}
+                rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,1.0,0.0)
+                rankings["doi_alpha0_beta1"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,0.0,1.0)
+                rankings["doi_alpha03_beta07"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,0.3,0.7)
+                #TODO: random ranking, recent ranking, size of change ranking
+                last_author_revs[cur_author] = i+j #update latest revision made by this author
+        else: #either anonymous author, or first time author. In these cases no point of doing doi, but can still do api
+            if cur_author == "": #anonymous
+                mip = readMIPfromFile(articleName,i)
+                rankings = {}
+                rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,1.0,0.0)
+                #TODO: random ranking, recent ranking, size of change ranking
+            else: #not anonymous, but first time user
+                j = j+1
+                while articleRevisions.revisions[i+j].author==cur_author:
+                    j = j+1
+                mip = readMIPfromFile(articleName,i)
+                rankings = {}
+                rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,1.0,0.0)
+                #TODO: random ranking, recent ranking, size of change ranking
+                last_author_revs[cur_author] = i+j #update latest revision made by this author
         
+        #get actual edits of the author in their current revision(s)
+        actualEdits = getEditsOfAuthor(cur_author, i, i+j, mip) #TODO: check i+j is right, or need i+j+1
+        
+        #evaluate all rankings
+        results = {}
+        if len(actualEdits)>0:
+            for rank in rankings:
+                resultsForRanking = []
+                for i in range(len(actualEdits)+1):
+                    precision = precisionAtN(actualEdits, rankings[rank],i)
+                    recall = recallAtN(actualEdits, rankings[rank],i)
+                    resultsForRanking.append((precision,recall))
+                results[rank] = resultsForRanking
+        
+        return results
+                
+
+def getEditsOfAuthor(author, startRev, endRev, mip):
+    changeList = []
+    for i in range(0,endRev):#check indices...
+        session = mip.log[i]
+        for act in session.actions:
+            changeList.append(act)            
+    return changeList
+
+'''
+------------------------------------------------------
+change ranking baselines
+------------------------------------------------------
+'''
+def generateRandomRanking(changeList):
+    return random.shuffle(changeList)
+
+def generateRankingByRecency(changeList):
+    return changeList.reverse()
+
+'''
+------------------------------------------------------
+change ranking baselines end
+------------------------------------------------------
+'''
+
+'''
+------------------------------------------------------
+evaluation metrics
+------------------------------------------------------
+'''
+def precisionAtN(actual, predicted, n):
+    return metrics.scores.precision(actual, predicted[:n])
+
+def recallAtN(actual, predicted, n):
+    return metrics.scores.recall(actual, predicted[:n])
+'''
+------------------------------------------------------
+evaluation metrics end
+------------------------------------------------------
+'''
+                
+def  readMIPfromFile(articleName,rev_number):
+    pickle_file_name = articleName + "_"+str(i)
+    mip_pickle = get_pickle(pickle_file_name)
+    return mip_pickle
         
     
-    return
-
 def generateMIPpicklesForArticles(articleRevisions, articleName):
     mip = Mip(articleRevisions.revisions[0])
     mip.initializeMIP()
