@@ -20,10 +20,9 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
 import math
-from django.contrib.admin.views.main import ChangeList
 import random
 from nltk import metrics
-
+import csv
 
 stop = stopwords.words('english')
 
@@ -74,12 +73,16 @@ class Mip:
     def initializeMIP(self):
         self.pars.append({})
         userId = self.addUser(self.currentVersion.author)
+        
+        session = Session(self.currentVersion.author, self.currentVersion, len(self.log))
+        partext = [a.text.encode('utf-8') for a in self.currentVersion.paragraphs]
 #        print userId
         index = 0
         for par in self.currentVersion.paragraphs:
             parId = self.addPars(None, index)
 #            print parId
             self.updateEdge(userId, parId,'u-p', self.sigIncrement)
+            session.actions.append(Action(session.user, parId, 'sigEdit',partext[index], self.sigIncrement))
             index=index+1
             
         for i in range(0,len(self.currentVersion.paragraphs)):
@@ -87,7 +90,8 @@ class Mip:
                 if i!=j:
                     self.updateEdge(self.pars[self.latestVersion-1][i], self.pars[self.latestVersion][j],'p-p', self.sigIncrement)
                     
-        
+        self.log.append(session)
+        print len(self.log)
 #        print self.mip.nodes(True)
         
         
@@ -295,7 +299,7 @@ class Mip:
         print '----finished centrality computation-----'
         notificationsList = []
         checkedObjects = {}
-        for i in range(time, len(self.log)):
+        for i in range(time, len(self.log)-1): #this includes revision at time TIME and does not include last revision in MIP, which is the one when the user is back 
             print "time = "+str(time)
             session = self.log[i]
             for act in session.actions:
@@ -344,7 +348,7 @@ class Mip:
     def rankChangesGivenUserFocus(self,user,focus_obj, time):
         notificationsList = []
         checkedObjects = []
-        for i in range(time, len(self.log)):
+        for i in range(time, len(self.log)-1):
             session = self.log[i]
             for act in session.actions:
                 if (act.ao not in checkedObjects):
@@ -443,16 +447,16 @@ def generate_ratios(paras1, paras2, reverse=False, sim_func=lev_sim):
             dists.append(lev_for_a)
     return dists
 
-def generate_all_ratios(how=lev_sim):
-    max_ratio_list = []
-    for i in xrange(len(current_paras)):
-        if i < len(current_paras)-1:
-            dists_list = generate_ratios(current_paratexts[i], current_paratexts[i+1], reverse=False, sim_func=how)
-            for a in dists_list:
-                max_ratio_list.append( max(a))
-    return max_ratio_list
-
-store_pickle = True
+#def generate_all_ratios(how=lev_sim):
+#    max_ratio_list = []
+#    for i in xrange(len(current_paras)):
+#        if i < len(current_paras)-1:
+#            dists_list = generate_ratios(current_paratexts[i], current_paratexts[i+1], reverse=False, sim_func=how)
+#            for a in dists_list:
+#                max_ratio_list.append( max(a))
+#    return max_ratio_list
+#
+#store_pickle = True
 
 #generates mapping between two paragraphs based on the lev dist between every combination of paragraph mappings
 def assign_neighbors(version1, version2, delthreshhold):
@@ -525,62 +529,92 @@ eval funcs
 '''
 def evaluateChangesForAuthors(articleRevisions, articleName):
     last_author_revs = {}
-    for i in range(2,len(articleRevisions.revisions)):
+#    last_author_revs[articleRevisions.revisions[0].author] = 0 #initialize with first author
+#    for i in range(len(articleRevisions.revisions)):
+    results = []
+    for i in range(120):
         cur_author = articleRevisions.revisions[i].author
         if ((cur_author in last_author_revs) & (cur_author!="")) : #check that there was a previous revision for this author (otherwise can't compute DOI, though could do just api, maybe add later), and that the author is not anonymous (have no info)
             if last_author_revs[cur_author]<i-1: #if the author wrote the previous revision, nothing to do.
                 j = 1;
-                while articleRevisions.revisions[i+j].author==cur_author:
+                while ((articleRevisions.revisions[i+j].author==cur_author) & (i+j<len(articleRevisions.revisions))):
                     j = j+1
                 
-                mip = readMIPfromFile(articleName,i)
+                mip = readMIPfromFile(articleName,i) #want the mip up to previous rev
                 rankings = {}
+                
                 rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,1.0,0.0)
                 rankings["doi_alpha0_beta1"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,0.0,1.0)
                 rankings["doi_alpha03_beta07"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,0.3,0.7)
+                
                 #TODO: random ranking, recent ranking, size of change ranking
-                last_author_revs[cur_author] = i+j #update latest revision made by this author
+                last_author_revs[cur_author] = i+j-1 #update latest revision made by this author
         else: #either anonymous author, or first time author. In these cases no point of doing doi, but can still do api
             if cur_author == "": #anonymous
                 mip = readMIPfromFile(articleName,i)
-                rankings = {}
-                rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,1.0,0.0)
-                #TODO: random ranking, recent ranking, size of change ranking
+                if i>0:
+                    rankings = {}
+                    rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,max(0,i-10),1.0,0.0)
+                    #TODO: random ranking, recent ranking, size of change ranking
             else: #not anonymous, but first time user
-                j = j+1
-                while articleRevisions.revisions[i+j].author==cur_author:
+                j = 1
+                while ((articleRevisions.revisions[i+j].author==cur_author) & (i+j<len(articleRevisions.revisions))):
                     j = j+1
-                mip = readMIPfromFile(articleName,i)
-                rankings = {}
-                rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,last_author_revs[cur_author]+1,1.0,0.0)
-                #TODO: random ranking, recent ranking, size of change ranking
-                last_author_revs[cur_author] = i+j #update latest revision made by this author
+                if i>0:
+                    mip = readMIPfromFile(articleName,i)
+                    rankings = {}
+                    rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,max(0,i-10),1.0,0.0)
+                    #TODO: random ranking, recent ranking, size of change ranking
+                last_author_revs[cur_author] = i+j-1 #update latest revision made by this author
         
         #get actual edits of the author in their current revision(s)
-        actualEdits = getEditsOfAuthor(cur_author, i, i+j, mip) #TODO: check i+j is right, or need i+j+1
         
-        #evaluate all rankings
-        results = {}
-        if len(actualEdits)>0:
-            for rank in rankings:
-                resultsForRanking = []
-                for i in range(len(actualEdits)+1):
-                    precision = precisionAtN(actualEdits, rankings[rank],i)
-                    recall = recallAtN(actualEdits, rankings[rank],i)
-                    resultsForRanking.append((precision,recall))
-                results[rank] = resultsForRanking
+        if (i>0):
+            actualEditsFull = getEditsOfAuthor(cur_author, i, i+j, articleName) #TODO: check i+j is right, or need i+j+1
+            actualEdits = generateChangeListWithObjectIDs(actualEditsFull)
+            #evaluate all rankings
+            
+            if len(actualEdits)>0:
+                for rank in rankings:
+                    changeListFull =  [ row[0] for row in rankings[rank] ] 
+                    changedObjects = generateChangeListWithObjectIDs(changeListFull)
+                    resultsForRanking = []
+                    resultsForRanking.append(rank) #add name of ranker for writing to file later
+                    resultsForRanking.append(i)
+                    resultsForRanking.append(cur_author)
+                    for i in range(len(actualEdits)+1):
+                        precision = precisionAtN(actualEdits, changedObjects,i)
+                        recall = recallAtN(actualEdits, changedObjects,i)
+                        resultsForRanking.append(precision)
+                        resultsForRanking.append(recall)
+                    results.append(resultsForRanking)
         
-        return results
+    return results
                 
 
-def getEditsOfAuthor(author, startRev, endRev, mip):
+def getEditsOfAuthor(author, startRev, endRev, articleName):
+    mip = readMIPfromFile(articleName,endRev-1) #want the mip up to previous rev
     changeList = []
-    for i in range(0,endRev):#check indices...
+    print "len(mip.log)" + str(len(mip.log))
+    print "endRev = " + str(endRev)
+    for i in range(0,endRev):#endRev should be the revision that has the NEXT author (not the last of current author)
         session = mip.log[i]
         for act in session.actions:
             changeList.append(act)            
     return changeList
 
+def writeResultsToFile(results, fileName):
+    resultFile = open(fileName,'wb')
+    wr = csv.writer(resultFile, dialect='excel')
+    for ranker in results:
+        wr.writerow(ranker)
+          
+def generateChangeListWithObjectIDs(changes): #one entry for each paragraph that change
+    prunedList = []
+    for change in changes:
+        if change.ao not in prunedList:
+            prunedList.append(change.ao)
+    return prunedList
 '''
 ------------------------------------------------------
 change ranking baselines
@@ -604,31 +638,38 @@ evaluation metrics
 ------------------------------------------------------
 '''
 def precisionAtN(actual, predicted, n):
-    return metrics.scores.precision(actual, predicted[:n])
+    return metrics.scores.precision(set(actual), set(predicted[:n]))
 
 def recallAtN(actual, predicted, n):
-    return metrics.scores.recall(actual, predicted[:n])
+    return metrics.scores.recall(set(actual), set(predicted[:n]))
 '''
 ------------------------------------------------------
 evaluation metrics end
 ------------------------------------------------------
 '''
                 
-def  readMIPfromFile(articleName,rev_number):
-    pickle_file_name = articleName + "_"+str(i)
-    mip_pickle = get_pickle(pickle_file_name)
+def readMIPfromFile(articleName,rev_number):
+    pickle_file_name = articleName + "_"+str(rev_number)
+    mip_pickle = get_pickle(pickle_file_name, folder = "mip_pickles")
     return mip_pickle
         
     
 def generateMIPpicklesForArticles(articleRevisions, articleName):
     mip = Mip(articleRevisions.revisions[0])
     mip.initializeMIP()
+    pickle_file_name = articleName + "_0"
+    mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
+    pkl_file = open(mip_file, 'wb')
+    print "writing file "+str(pickle_file_name)
+    cPickle.dump(mip, pkl_file)
+    pkl_file.close()
     for i in range(1,len(articleRevisions.revisions)):
-        mip.updateMIP(revision[i])
+#    for i in range(1,5):
+        mip.updateMIP(articleRevisions.revisions[i])
         pickle_file_name = articleName + "_"+str(i)
         mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
         pkl_file = open(mip_file, 'wb')
-        print "writing file"
+        print "writing file "+str(pickle_file_name)
         cPickle.dump(mip, pkl_file)
         pkl_file.close()
         
@@ -644,74 +685,85 @@ eval funcs end
 
 if __name__ == '__main__':
     print 'test'
+   
     #load necessary data
 #    pickle_file_name = 'Absolute_pitch.pkl'
+    generate = False
+
     pickle_file_name = 'Yale_University.pkl'
     current_pickle = get_pickle(pickle_file_name)
     print current_pickle
-    current_texts = current_pickle.get_all_text()
-    current_paras = current_pickle.get_all_paragraphs()
-    print current_paras[0][0].text
-    current_paratexts = [[a.text.encode('utf-8') for a in b] for b in current_paras]
-    revision = current_pickle.revisions
-    print len(current_paratexts[0])
-
-    mip = Mip(revision[0])
-    mip.initializeMIP()
-    print len(revision)
-    for i in range(0,389):
-#        print revision[i].author
-        mip.updateMIP(revision[i])
-        
-    print '---------mip created----------'  
-    rankedChanges = mip.rankChangesForUser("Nunh-huh", 344, onlySig = False)
-    for change in rankedChanges:
-        print str(change[0])
-        print str(change[1])
-    edgewidth=[]
-    for (u,v,d) in mip.mip.edges(data=True):
-        edgewidth.append(d['weight'])
-
-#    elarge=[(u,v) for (u,v,d) in G.edges(data=True) if d['weight'] >0.5]
-#    esmall=[(u,v) for (u,v,d) in G.edges(data=True) if d['weight'] <=0.5]
-    userNodes = [n for (n,d) in mip.mip.nodes(True) if d['type']=='user']
-    parDeletedNodes = []
-    parNodes = []
-    for (n,d) in mip.mip.nodes(True):
-        if d['type']=='par':
-            if d['deleted']==1:
-                parDeletedNodes.append(n)
-            else:
-                parNodes.append(n)
-
-    pos=nx.spring_layout(mip.mip)
-    new_labels = {}
-    for node,d in mip.mip.nodes(True):
-#        print 'node'
-#        print node
-#        print 'd'
-#        print d
-        if d['type']=='user':
-            new_labels[node]=mip.nodeIdsToUsers[node]
-#            print 'user'
-        else:
-            new_labels[node]=node
-#            print 'par'
     
+#    mip = Mip(current_pickle.revisions[0])
+#    mip.initializeMIP()
+#    pickle_file_name = "Yale_University_0"
+#    mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
+#    pkl_file = open(mip_file, 'wb')
+#    print "writing file "+str(pickle_file_name)
+#    cPickle.dump(mip, pkl_file)
+#    pkl_file.close()
+    #generate mip pickles
+    if generate == True:        
+        generateMIPpicklesForArticles(current_pickle,"Yale_University")
+        print 'generated all MIPs'
     
-    
-    
-#    print DegreeOfInterestMIPs(mip.mip, 3, 7)
-    nx.draw_networkx_nodes(mip.mip,pos,nodelist=userNodes,node_size=300,node_color='red')
-    nx.draw_networkx_nodes(mip.mip,pos,nodelist=parNodes,node_size=300,node_color='blue')
-    nx.draw_networkx_nodes(mip.mip,pos,nodelist=parDeletedNodes, node_size=300,node_color='black')
-    nx.draw_networkx_edges(mip.mip,pos,edgelist=mip.mip.edges(),width=edgewidth)
-    nx.draw_networkx_labels(mip.mip,pos,new_labels)
-    print 'clustering'
-    print(nx.average_clustering(mip.mip, weight = "weight"))
-    #    G=nx.dodecahedral_graph()
-#    nx.draw(mip.mip)
-    plt.draw()
-#    plt.savefig('ego_graph50.png')
-    plt.show()
+    results = evaluateChangesForAuthors(current_pickle,"Yale_University")
+    writeResultsToFile(results, "author_edits_predictions/yale_author_change_predictions.csv")
+#    current_texts = current_pickle.get_all_text()
+#    current_paras = current_pickle.get_all_paragraphs()
+#    print current_paras[0][0].text
+#    current_paratexts = [[a.text.encode('utf-8') for a in b] for b in current_paras]
+#    revision = current_pickle.revisions
+#    print len(current_paratexts[0])
+#
+#    mip = Mip(revision[0])
+#    mip.initializeMIP()
+#    print len(revision)
+#    for i in range(0,389):
+#        mip.updateMIP(revision[i])
+#        
+#    print '---------mip created----------'  
+#    rankedChanges = mip.rankChangesForUser("Nunh-huh", 344, onlySig = False)
+#    for change in rankedChanges:
+#        print str(change[0])
+#        print str(change[1])
+#    edgewidth=[]
+#    for (u,v,d) in mip.mip.edges(data=True):
+#        edgewidth.append(d['weight'])
+#
+#
+#    userNodes = [n for (n,d) in mip.mip.nodes(True) if d['type']=='user']
+#    parDeletedNodes = []
+#    parNodes = []
+#    for (n,d) in mip.mip.nodes(True):
+#        if d['type']=='par':
+#            if d['deleted']==1:
+#                parDeletedNodes.append(n)
+#            else:
+#                parNodes.append(n)
+#
+#    pos=nx.spring_layout(mip.mip)
+#    new_labels = {}
+#    for node,d in mip.mip.nodes(True):
+#        if d['type']=='user':
+#            new_labels[node]=mip.nodeIdsToUsers[node]
+#        else:
+#            new_labels[node]=node
+#    
+#    
+#    
+#    
+##    print DegreeOfInterestMIPs(mip.mip, 3, 7)
+#    nx.draw_networkx_nodes(mip.mip,pos,nodelist=userNodes,node_size=300,node_color='red')
+#    nx.draw_networkx_nodes(mip.mip,pos,nodelist=parNodes,node_size=300,node_color='blue')
+#    nx.draw_networkx_nodes(mip.mip,pos,nodelist=parDeletedNodes, node_size=300,node_color='black')
+#    nx.draw_networkx_edges(mip.mip,pos,edgelist=mip.mip.edges(),width=edgewidth)
+#    nx.draw_networkx_labels(mip.mip,pos,new_labels)
+#    print 'clustering'
+#    print(nx.average_clustering(mip.mip, weight = "weight"))
+#    #    G=nx.dodecahedral_graph()
+##    nx.draw(mip.mip)
+#    plt.draw()
+##    plt.savefig('ego_graph50.png')
+#    plt.show()
     
