@@ -612,8 +612,7 @@ def evaluateGeneralParagraphRankingForAuthors(articleRevisions, articleName):
 #    for i in range(len(articleRevisions.revisions)):
     results = []
     for i in range(2,len(articleRevisions.revisions)):
-        if (i==616):
-            print 'here'
+
         j=0
         print i
         mip = readMIPfromFile(articleName,i-1) #taking the mip up until the last author, so we can look at all current paragraph and rank them for the user. 
@@ -685,20 +684,36 @@ def evaluateGeneralParagraphRankingForAuthors(articleRevisions, articleName):
                     print 'changeListFull: '+str(changeListFull)
                     changedObjects = generateChangeListWithObjectIDsJustAO(changeListFull)
                     print 'change list set: '+str(changedObjects)
-                    resultsForRanking = []
-                    resultsForRanking.append(rank) #add name of ranker for writing to file later
-                    resultsForRanking.append(i)                    
-                    resultsForRanking.append(cur_author)
-                    resultsForRanking.append(prediction_type)
-                    resultsForRanking.append(len(actualEdits))
-                    resultsForRanking.append(len(livePars))
+
  
                     for k in range(1,len(changedObjects)+1): #TODO check makes sense
+                        resultsForRanking = []
+                        resultsForRanking.append(rank) #add name of ranker for writing to file later
+                        resultsForRanking.append(i)                    
+                        resultsForRanking.append(cur_author)
+                        resultsForRanking.append(prediction_type)
+                        resultsForRanking.append(len(actualEdits))
+                        resultsForRanking.append(len(livePars))
+                        resultsForRanking.append(str(k)+"_precision")                        
                         precision = precisionAtN(actualEdits, changedObjects,k)
-                        recall = recallAtN(actualEdits, changedObjects,k)
                         resultsForRanking.append(precision)
+                        results.append(resultsForRanking)
+                        
+                        resultsForRanking = []
+                        resultsForRanking.append(rank) #add name of ranker for writing to file later
+                        resultsForRanking.append(i)                    
+                        resultsForRanking.append(cur_author)
+                        resultsForRanking.append(prediction_type)
+                        resultsForRanking.append(len(actualEdits))
+                        resultsForRanking.append(len(livePars))
+                        resultsForRanking.append(str(k)+"_recall")                        
+                        recall = recallAtN(actualEdits, changedObjects,k)
                         resultsForRanking.append(recall)
-                    results.append(resultsForRanking)
+                        results.append(resultsForRanking)
+
+#                        if recall ==1: #if we retreived all changes made by user, no point to proceed (not implemented for now because different rankers may complete at different number)
+#                            break;
+                    
         prev_author = cur_author
     return results
 
@@ -711,6 +726,8 @@ Current setting only looks at significant edits. Can change.
 def evaluateChangesForAuthors(articleRevisions, articleName):
     last_author_revs = {}
     prev_author = None
+    prediction_type = '' #returning user, first time user or anonymous user?
+
 #    last_author_revs[articleRevisions.revisions[0].author] = 0 #initialize with first author
 #    for i in range(len(articleRevisions.revisions)):
     results = []
@@ -739,6 +756,7 @@ def evaluateChangesForAuthors(articleRevisions, articleName):
                 rankings['random'] = listOfChangedPars
                 #TODO: random ranking, recent ranking, size of change ranking
                 last_author_revs[cur_author] = i+j-1 #update latest revision made by this author
+                prediction_type = 'returning'
             else: #should be unnecessary 
                 prev_author = cur_author
         else: #either anonymous author, or first time author. In these cases no point of doing doi, but can still do api
@@ -749,7 +767,8 @@ def evaluateChangesForAuthors(articleRevisions, articleName):
                     rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,max(0,i-10),False, 1.0,0.0)
                     listOfChangedPars =  [ row for row in rankings["doi_alpha1_beta0"] ] 
                     generateRandomRanking(listOfChangedPars)
-                    rankings['random'] = listOfChangedPars                  
+                    rankings['random'] = listOfChangedPars   
+                    prediction_type = 'anonymous'                 
                     #TODO: random ranking, recent ranking, size of change ranking
             else: #not anonymous, but first time user
                 j = 1
@@ -762,7 +781,8 @@ def evaluateChangesForAuthors(articleRevisions, articleName):
                     rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,max(0,i-10),False, 1.0,0.0)
                     listOfChangedPars =  [ row for row in rankings["doi_alpha1_beta0"] ] 
                     generateRandomRanking(listOfChangedPars)
-                    rankings['random'] = listOfChangedPars                   
+                    rankings['random'] = listOfChangedPars   
+                    prediction_type = 'firstTime'                   
                     #TODO: random ranking, recent ranking, size of change ranking
                 last_author_revs[cur_author] = i+j-1 #update latest revision made by this author
         
@@ -782,19 +802,33 @@ def evaluateChangesForAuthors(articleRevisions, articleName):
                 for rank in rankings:
                     changeListFull =  [ row[0] for row in rankings[rank] ] 
                     changedObjects = generateChangeListWithObjectIDs(changeListFull)
-                    resultsForRanking = []
-                    resultsForRanking.append(rank) #add name of ranker for writing to file later
-                    resultsForRanking.append(i)                    
-                    resultsForRanking.append(cur_author)
-                    resultsForRanking.append(len(actualEdits))
-                    resultsForRanking.append(len(livePars))
+
  
                     for k in range(1,len(changedObjects)+1): #TODO check makes sense
+                        resultsForRanking = []
+                        resultsForRanking.append(rank) #add name of ranker for writing to file later
+                        resultsForRanking.append(i)                    
+                        resultsForRanking.append(cur_author)
+                        resultsForRanking.append(prediction_type)
+                        resultsForRanking.append(len(actualEdits))
+                        resultsForRanking.append(len(livePars))
+                        resultsForRanking.append(str(k)+"_precision")                        
                         precision = precisionAtN(actualEdits, changedObjects,k)
-                        recall = recallAtN(actualEdits, changedObjects,k)
                         resultsForRanking.append(precision)
+                        results.append(resultsForRanking)
+                        
+                        resultsForRanking = []
+                        resultsForRanking.append(rank) #add name of ranker for writing to file later
+                        resultsForRanking.append(i)                    
+                        resultsForRanking.append(cur_author)
+                        resultsForRanking.append(prediction_type)
+                        resultsForRanking.append(len(actualEdits))
+                        resultsForRanking.append(len(livePars))
+                        resultsForRanking.append(str(k)+"_recall")                        
+                        recall = recallAtN(actualEdits, changedObjects,k)
                         resultsForRanking.append(recall)
-                    results.append(resultsForRanking)
+                        results.append(resultsForRanking)
+                        
         prev_author = cur_author
     return results
 
@@ -823,7 +857,7 @@ def getSignificantEditsOfAuthor(author, startRev, endRev, articleName):
         if (author!=session.user):
             print 'bug'
         for act in session.actions:
-            if (act.actType != 'smallEdit'):
+            if ((act.actType != 'smallEdit') & (act.actType !='added')): #not looking at small edits, but also not on added paragraph as those cannot be predicted
                 changeList.append(act)            
     return changeList
 
@@ -906,19 +940,19 @@ def generateMIPpicklesForArticles(articleRevisions, articleName, startFrom = 1):
 #    for i in range(1,15):
 
         #try to read from mip, if it already exists no need to recompute
-#        try: 
-#            mip_pickle = readMIPfromFile(articleName,i)
-##        if (mip_pickle!=None):
-##            continue
-#        except: #mip hasn't yet been computed!
-        mip = readMIPfromFile(articleName,i-1)
-        mip.updateMIP(articleRevisions.revisions[i])
-        pickle_file_name = articleName + "_"+str(i)
-        mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
-        pkl_file = open(mip_file, 'wb')
-        print "writing file "+str(pickle_file_name)
-        cPickle.dump(mip, pkl_file)
-        pkl_file.close()
+        try: 
+            mip_pickle = readMIPfromFile(articleName,i)
+#        if (mip_pickle!=None):
+#            continue
+        except: #mip hasn't yet been computed!
+            mip = readMIPfromFile(articleName,i-1)
+            mip.updateMIP(articleRevisions.revisions[i])
+            pickle_file_name = articleName + "_"+str(i)
+            mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
+            pkl_file = open(mip_file, 'wb')
+            print "writing file "+str(pickle_file_name)
+            cPickle.dump(mip, pkl_file)
+            pkl_file.close()
         
 
 def runEvalOnArticle(pickle_file_name,generateMIPs = False):
@@ -931,11 +965,11 @@ def runEvalOnArticle(pickle_file_name,generateMIPs = False):
             
         #    results = evaluateChangesForAuthors(current_pickle,"johann_pachelbel")
             results = evaluateGeneralParagraphRankingForAuthors(current_pickle,pickle_file_name[:-4])
-            resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_par_predictions_sigOnly1.csv"
+            resFileName = "author_predictions_may25/"+ pickle_file_name[:-4] + "_live_par_predictions_sigOnly.csv"
             writeResultsToFile(results, resFileName)
             
             results = evaluateChangesForAuthors(current_pickle,pickle_file_name[:-4])
-            resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_changes_predictions_sigOnly1.csv"
+            resFileName = "author_predictions_may25/"+ pickle_file_name[:-4] + "_changes_predictions_sigOnly.csv"
             writeResultsToFile(results, resFileName)
         except:
             print "Unexpected error:", sys.exc_info()[0]   
@@ -966,11 +1000,11 @@ def runEvalOnFolder(folderName, generateMIPs = False):
                     
                 #    results = evaluateChangesForAuthors(current_pickle,"johann_pachelbel")
                     results = evaluateGeneralParagraphRankingForAuthors(current_pickle,pickle_file_name[:-4])
-                    resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_par_predictions_sigOnly_new.csv"
+                    resFileName = "author_predictions_may25/"+ pickle_file_name[:-4] + "_par_predictions_sigOnly.csv"
                     writeResultsToFile(results, resFileName)
                     
                     results = evaluateChangesForAuthors(current_pickle,pickle_file_name[:-4])
-                    resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_changes_predictions_sigOnly_new.csv"
+                    resFileName = "author_predictions_may25/"+ pickle_file_name[:-4] + "_changes_predictions_sigOnly.csv"
                     writeResultsToFile(results, resFileName)
                 except:
                     print "Unexpected error:", sys.exc_info()[0]
@@ -986,8 +1020,8 @@ eval funcs end
 
 if __name__ == '__main__':
     print 'test'
-    runEvalOnFolder('pickles', True)
-#    runEvalOnArticle('The_Adventures_of_Tintin.pkl', True)
+    runEvalOnFolder('pickles', False)
+#    runEvalOnArticle('The_Adventures_of_Tintin.pkl', False)
    
     #load necessary data
 #    pickle_file_name = 'Absolute_pitch.pkl'
