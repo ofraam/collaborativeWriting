@@ -22,7 +22,9 @@ import matplotlib.pyplot as plt
 import math
 import random
 from nltk import metrics
+from sklearn.metrics import precision_recall_curve
 import csv
+import traceback
 
 stop = stopwords.words('english')
 
@@ -132,6 +134,12 @@ class Mip:
                 prevParIndex=mappings[i]
                 self.addPars(prevParIndex, i) # adding to MIP
                 #check for sig change
+#                print 'old_partext[prevParIndex] '
+##                print old_partext[prevParIndex]
+#                print len(old_partext[prevParIndex])
+##                print 'new_partext[i]'
+#                print new_partext[i]
+#                print len(new_partext[i])
                 sim = cosine_sim(old_partext[prevParIndex],new_partext[i])#compute topic similarity (tfidf)
                 if sim<0.75:
                     sigChangePars.append(self.pars[self.latestVersion][i]) #significant change in topic similarity
@@ -186,7 +194,12 @@ class Mip:
         #update current version and log with new session
         self.currentVersion=newVersion
         self.log.append(session)
-        self.current_flow_betweeness = nx.current_flow_betweenness_centrality(self.mip,True, 'weight')
+        try:
+            self.current_flow_betweeness = nx.current_flow_betweenness_centrality(self.mip,True, weight = 'weight')
+        except:
+            self.current_flow_betweeness = nx.degree_centrality(self.mip)
+#        self.current_flow_betweeness = nx.betweenness_centrality(self.mip,True, weight = 'weight')
+
 #        print 'session'
 #        print len(session.actions)
 #        print "session user = "+session.user
@@ -273,7 +286,8 @@ class Mip:
                 proximity = self.CFEC(userID,obj) #cfec proximity
         else:
             return alpha*api_obj
-  
+#        print 'api_obj = '+str(api_obj)
+#        print 'proximity = '+str(proximity)
         return alpha*api_obj+beta*proximity #TODO: check that scales work out for centrality and proximity, otherwise need some normalization
 
 
@@ -290,8 +304,11 @@ class Mip:
         proximity = 0.0
         for node in nx.common_neighbors(self.mip, s, t):
             weights = self.mip[s][node]['weight'] + self.mip[t][node]['weight'] #the weight of the path connecting s and t through the current node
-            proximity = proximity + (weights*(1/(math.log(self.mip.degree(node, weight = 'weight'))+0.00000000000000000000000001))) #gives more weight to "rare" shared neighbors, adding small number to avoid dividing by zero
-            
+            if weights!=0: #0 essentially means no connection
+#                print 'weights = '+str(weights)
+#                print 'degree = '+str(self.mip.degree(node, weight = 'weight'))
+                proximity = proximity + (weights*(1/(math.log(self.mip.degree(node, weight = 'weight'))+0.00000000000000000000000001))) #gives more weight to "rare" shared neighbors, adding small number to avoid dividing by zero
+#                print 'proximity = '+str(proximity)
         return proximity    
     '''
     computes Cycle-Free-Edge-Conductance from Koren et al. 2007
@@ -595,6 +612,8 @@ def evaluateGeneralParagraphRankingForAuthors(articleRevisions, articleName):
 #    for i in range(len(articleRevisions.revisions)):
     results = []
     for i in range(2,len(articleRevisions.revisions)):
+        if (i==616):
+            print 'here'
         j=0
         print i
         mip = readMIPfromFile(articleName,i-1) #taking the mip up until the last author, so we can look at all current paragraph and rank them for the user. 
@@ -604,8 +623,9 @@ def evaluateGeneralParagraphRankingForAuthors(articleRevisions, articleName):
         if ((cur_author in last_author_revs) & (cur_author!="")) : #check that there was a previous revision for this author (otherwise can't compute DOI, though could do just api, maybe add later), and that the author is not anonymous (have no info)
             if last_author_revs[cur_author]<i-1: #if the author wrote the previous revision, nothing to do.
                 j = 1;
-                while ((articleRevisions.revisions[i+j].author==cur_author) & (i+j<len(articleRevisions.revisions))):
-                    j = j+1
+                if (i+j<len(articleRevisions.revisions)):
+                    while ((articleRevisions.revisions[i+j].author==cur_author) & (i+j<len(articleRevisions.revisions) - 1)):
+                        j = j+1
                 
                 
                 rankings = {}
@@ -624,6 +644,7 @@ def evaluateGeneralParagraphRankingForAuthors(articleRevisions, articleName):
         else: #either anonymous author, or first time author. In these cases no point of doing doi, but can still do api
             if cur_author == "": #anonymous
                 if i>0:
+                    j=1
                     rankings = {}
                     rankings["doi_alpha1_beta0"] = mip.rankLiveObjectsForUser(cur_author,alpha = 1.0, beta = 0.0)
                     listOfChangedPars =  [ row for row in rankings["doi_alpha1_beta0"] ] 
@@ -649,7 +670,7 @@ def evaluateGeneralParagraphRankingForAuthors(articleRevisions, articleName):
         
         #get actual edits of the author in their current revision(s)
         
-        if ((i>0) & (prev_author!=cur_author)):
+        if ((i>0) & ((prev_author!=cur_author) | (cur_author == ""))):
             actualEditsFull = getSignificantEditsOfAuthor(cur_author, i, i+j, articleName) #TODO: check i+j is right, or need i+j+1
             actualEdits = generateChangeListWithObjectIDs(actualEditsFull)
             
@@ -672,7 +693,7 @@ def evaluateGeneralParagraphRankingForAuthors(articleRevisions, articleName):
                     resultsForRanking.append(len(actualEdits))
                     resultsForRanking.append(len(livePars))
  
-                    for k in range(1,len(changedObjects)): #TODO check makes sense
+                    for k in range(1,len(changedObjects)+1): #TODO check makes sense
                         precision = precisionAtN(actualEdits, changedObjects,k)
                         recall = recallAtN(actualEdits, changedObjects,k)
                         resultsForRanking.append(precision)
@@ -703,8 +724,9 @@ def evaluateChangesForAuthors(articleRevisions, articleName):
         if ((cur_author in last_author_revs) & (cur_author!="")) : #check that there was a previous revision for this author (otherwise can't compute DOI, though could do just api, maybe add later), and that the author is not anonymous (have no info)
             if last_author_revs[cur_author]<i-1: #if the author wrote the previous revision, nothing to do.
                 j = 1;
-                while ((articleRevisions.revisions[i+j].author==cur_author) & (i+j<len(articleRevisions.revisions))):
-                    j = j+1
+                if (i+j<len(articleRevisions.revisions)):
+                    while ((articleRevisions.revisions[i+j].author==cur_author) & (i+j<len(articleRevisions.revisions)-1)):
+                        j = j+1
                 
                 
                 rankings = {}
@@ -722,6 +744,7 @@ def evaluateChangesForAuthors(articleRevisions, articleName):
         else: #either anonymous author, or first time author. In these cases no point of doing doi, but can still do api
             if cur_author == "": #anonymous
                 if i>0:
+                    j=1
                     rankings = {}
                     rankings["doi_alpha1_beta0"] = mip.rankChangesForUser(cur_author,max(0,i-10),False, 1.0,0.0)
                     listOfChangedPars =  [ row for row in rankings["doi_alpha1_beta0"] ] 
@@ -745,7 +768,7 @@ def evaluateChangesForAuthors(articleRevisions, articleName):
         
         #get actual edits of the author in their current revision(s)
         
-        if ((i>0) & (prev_author!=cur_author)):
+        if ((i>0) & ((prev_author!=cur_author) | (cur_author == ""))):
             actualEditsFull = getSignificantEditsOfAuthor(cur_author, i, i+j, articleName) #TODO: check i+j is right, or need i+j+1
             actualEdits = generateChangeListWithObjectIDs(actualEditsFull)
             
@@ -766,7 +789,7 @@ def evaluateChangesForAuthors(articleRevisions, articleName):
                     resultsForRanking.append(len(actualEdits))
                     resultsForRanking.append(len(livePars))
  
-                    for k in range(1,len(changedObjects)): #TODO check makes sense
+                    for k in range(1,len(changedObjects)+1): #TODO check makes sense
                         precision = precisionAtN(actualEdits, changedObjects,k)
                         recall = recallAtN(actualEdits, changedObjects,k)
                         resultsForRanking.append(precision)
@@ -870,7 +893,7 @@ def readMIPfromFile(articleName,rev_number):
     return mip_pickle
         
     
-def generateMIPpicklesForArticles(articleRevisions, articleName):
+def generateMIPpicklesForArticles(articleRevisions, articleName, startFrom = 1):
     mip = Mip(articleRevisions.revisions[0])
     mip.initializeMIP()
     pickle_file_name = articleName + "_0"
@@ -879,8 +902,16 @@ def generateMIPpicklesForArticles(articleRevisions, articleName):
     print "writing file "+str(pickle_file_name)
     cPickle.dump(mip, pkl_file)
     pkl_file.close()
-    for i in range(1,len(articleRevisions.revisions)):
-#    for i in range(1,5):
+    for i in range(startFrom,len(articleRevisions.revisions)):
+#    for i in range(1,15):
+
+        #try to read from mip, if it already exists no need to recompute
+#        try: 
+#            mip_pickle = readMIPfromFile(articleName,i)
+##        if (mip_pickle!=None):
+##            continue
+#        except: #mip hasn't yet been computed!
+        mip = readMIPfromFile(articleName,i-1)
         mip.updateMIP(articleRevisions.revisions[i])
         pickle_file_name = articleName + "_"+str(i)
         mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
@@ -890,42 +921,109 @@ def generateMIPpicklesForArticles(articleRevisions, articleName):
         pkl_file.close()
         
 
-        
-    
-    
+def runEvalOnArticle(pickle_file_name,generateMIPs = False):
+        current_pickle = get_pickle(pickle_file_name)
+        print len(current_pickle.revisions)          
+        try:
+            if generateMIPs == True:        
+                generateMIPpicklesForArticles(current_pickle,pickle_file_name[:-4])
+                print 'generated all MIPs'
+            
+        #    results = evaluateChangesForAuthors(current_pickle,"johann_pachelbel")
+            results = evaluateGeneralParagraphRankingForAuthors(current_pickle,pickle_file_name[:-4])
+            resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_par_predictions_sigOnly1.csv"
+            writeResultsToFile(results, resFileName)
+            
+            results = evaluateChangesForAuthors(current_pickle,pickle_file_name[:-4])
+            resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_changes_predictions_sigOnly1.csv"
+            writeResultsToFile(results, resFileName)
+        except:
+            print "Unexpected error:", sys.exc_info()[0]   
+            traceback.print_exc() 
+        return
+
+def runEvalOnFolder(folderName, generateMIPs = False):
+        for a in os.walk(folderName):
+            for pickle_file_name in a[2]:
+                
+            
+                current_pickle = get_pickle(pickle_file_name)
+                print len(current_pickle.revisions)
+                
+            #    mip = Mip(current_pickle.revisions[0])
+            #    mip.initializeMIP()
+            #    pickle_file_name = "Yale_University_0"
+            #    mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
+            #    pkl_file = open(mip_file, 'wb')
+            #    print "writing file "+str(pickle_file_name)
+            #    cPickle.dump(mip, pkl_file)
+            #    pkl_file.close()
+                #generate mip pickles
+                try:
+                    if generateMIPs == True:        
+                        generateMIPpicklesForArticles(current_pickle,pickle_file_name[:-4])
+                        print 'generated all MIPs'
+                    
+                #    results = evaluateChangesForAuthors(current_pickle,"johann_pachelbel")
+                    results = evaluateGeneralParagraphRankingForAuthors(current_pickle,pickle_file_name[:-4])
+                    resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_par_predictions_sigOnly_new.csv"
+                    writeResultsToFile(results, resFileName)
+                    
+                    results = evaluateChangesForAuthors(current_pickle,pickle_file_name[:-4])
+                    resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_changes_predictions_sigOnly_new.csv"
+                    writeResultsToFile(results, resFileName)
+                except:
+                    print "Unexpected error:", sys.exc_info()[0]
+                    traceback.print_exc()   
+            return 
 '''
 -----------------------------------------------------------------------------
 eval funcs end
 ----------------------------------------------------------------------------
 '''
+        
+
 
 if __name__ == '__main__':
     print 'test'
+    runEvalOnFolder('pickles', True)
+#    runEvalOnArticle('The_Adventures_of_Tintin.pkl', True)
    
     #load necessary data
 #    pickle_file_name = 'Absolute_pitch.pkl'
-    generate = True
+    
+#    for a in os.walk('pickles'):
+#        for pickle_file_name in a[2]:
+#            generate = True
+#        
+#            current_pickle = get_pickle(pickle_file_name)
+#            print len(current_pickle.revisions)
+#            
+#        #    mip = Mip(current_pickle.revisions[0])
+#        #    mip.initializeMIP()
+#        #    pickle_file_name = "Yale_University_0"
+#        #    mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
+#        #    pkl_file = open(mip_file, 'wb')
+#        #    print "writing file "+str(pickle_file_name)
+#        #    cPickle.dump(mip, pkl_file)
+#        #    pkl_file.close()
+#            #generate mip pickles
+#            try:
+#                if generate == True:        
+#                    generateMIPpicklesForArticles(current_pickle,pickle_file_name[:-4])
+#                    print 'generated all MIPs'
+#                
+#            #    results = evaluateChangesForAuthors(current_pickle,"johann_pachelbel")
+#                results = evaluateGeneralParagraphRankingForAuthors(current_pickle,pickle_file_name[:-4])
+#                resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_par_predictions_sigOnly.csv"
+#                writeResultsToFile(results, resFileName)
+#                
+#                results = evaluateChangesForAuthors(current_pickle,pickle_file_name[:-4])
+#                resFileName = "author_edits_predictions/"+ pickle_file_name[:-4] + "_changes_predictions_sigOnly.csv"
+#                writeResultsToFile(results, resFileName)
+#            except:
+#                print "Unexpected error:", sys.exc_info()[0]
 
-    pickle_file_name = 'Yale_University.pkl'
-    current_pickle = get_pickle(pickle_file_name)
-    print len(current_pickle.revisions)
-    
-#    mip = Mip(current_pickle.revisions[0])
-#    mip.initializeMIP()
-#    pickle_file_name = "Yale_University_0"
-#    mip_file = os.path.join(os.getcwd(), "mip_pickles", pickle_file_name)
-#    pkl_file = open(mip_file, 'wb')
-#    print "writing file "+str(pickle_file_name)
-#    cPickle.dump(mip, pkl_file)
-#    pkl_file.close()
-    #generate mip pickles
-    if generate == True:        
-        generateMIPpicklesForArticles(current_pickle,"Yale_University")
-        print 'generated all MIPs'
-    
-#    results = evaluateChangesForAuthors(current_pickle,"johann_pachelbel")
-    results = evaluateGeneralParagraphRankingForAuthors(current_pickle,"Yale_University")
-    writeResultsToFile(results, "author_edits_predictions/Yale_University_author_par_predictions_sigOnly.csv")
 #    current_texts = current_pickle.get_all_text()
 #    current_paras = current_pickle.get_all_paragraphs()
 #    print current_paras[0][0].text
